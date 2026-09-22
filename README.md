@@ -76,4 +76,4 @@ Requirements and system behavior may be refined as development, testing, and rev
 
 ## Purpose
 
-Q2 aims to provide a more organized and efficient way for students to order from the school cafeteria while helping sellers manage incoming orders, invent
+Q2 aims to provide a more organized and efficient way for students to order from the school cafeteria while helping sellers manage incoming orders, inventory, and transaction workflows.
