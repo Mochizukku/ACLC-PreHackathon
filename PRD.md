@@ -236,9 +236,10 @@ The automated questionnaire website and email workflow is a planned system capab
 
 ### FR-03. QR Code Access
 
-- The system shall provide a QR code for the active store.
-- The same store QR destination shall be usable from printed QR codes placed at cafeteria tables.
-- Customers may also access the QR scanning function without having to approach the counter first.
+- The system shall provide a single static QR code for the active store.
+- The same store QR code is placed across cafeteria tables as an easy way for customers to access the store menu without approaching the counter.
+- The store QR code remains permanent and valid throughout the seller's operational lifetime, resetting/invalidating only if the seller's account is deactivated by an administrator.
+- Customers may scan the table QR code directly through the app or device camera.
 
 ### FR-04. Customer Identification
 
@@ -299,10 +300,10 @@ The primary order lifecycle shall use these statuses:
 ### FR-11. Inventory and Availability
 
 - The seller shall define product quantities.
-- Each confirmed/paid order shall reduce the remaining quantity of the ordered products according to the order.
-- When a product's remaining quantity reaches zero, the system shall mark the product unavailable.
-- Unavailable products shall not be presented as orderable.
-- The seller shall be able to manage product information and quantities.
+- Product inventory shall be decremented in real-time immediately upon payment confirmation by the seller (transition from **Pending Payment** to **Paid**), not at initial checkout creation.
+- When a product's remaining quantity reaches zero, the system shall mark the product unavailable in real-time.
+- Unavailable products shall immediately cease to be presented as orderable.
+- The seller shall be able to manage product information, quantities, and restock levels in real-time.
 
 ### FR-12. Product Unavailability During Preparation
 
@@ -345,15 +346,15 @@ The administrator interface shall provide seller account management, including:
 ## 9. Business Rules
 
 1. The system operates with one active seller/store under the current school policy.
-2. A QR code identifies the active store rather than an individual customer.
-3. Multiple printed copies of the same store QR code may be placed at cafeteria tables.
+2. A single static QR code identifies the active store.
+3. The same static store QR code is placed across cafeteria tables for easy customer ordering without queuing at the counter; it remains permanent and does not reset unless the seller account is deactivated by an administrator.
 4. A customer name is required before an order can be created.
 5. Customers do not need an account to place an order.
 6. An order is not considered paid until the seller confirms payment.
 7. Only the seller may advance an order through its operational statuses.
 8. A seller cancellation must include a reason visible to the customer.
 9. A customer cannot directly cancel a confirmed order; the customer must request cancellation from the seller.
-10. Product quantity is reduced by confirmed/paid orders.
+10. Product quantity is decremented in real-time immediately upon seller payment confirmation (Paid status).
 11. A product becomes unavailable when its remaining quantity reaches zero.
 12. If a product becomes unavailable during preparation, the product remains listed on the receipt with no charge and is recorded for refund handling after preparation.
 13. An order becomes completed only after the customer has picked it up and the seller marks it completed.
@@ -419,9 +420,9 @@ The system should maintain records necessary to support:
 
 ## 12. Notifications
 
-- Customers shall receive a notification when their order is ready for pickup.
-- Customer-facing order tracking shall display the current order status.
-- Cancellation reasons and relevant order adjustments shall be visible to the customer.
+- Customers shall receive real-time notifications when their order is ready for pickup via both in-app status alerts and device/phone push notifications.
+- Customer-facing order tracking shall reflect status changes in real-time (Pending Payment -> Paid -> Preparing -> Ready for Pickup -> Completed).
+- Cancellation reasons and unavailable product adjustments shall be delivered and displayed to the customer in real-time.
 
 ## 13. Open Questions
 
