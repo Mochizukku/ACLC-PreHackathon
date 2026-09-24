@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'seller/seller_access_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -83,10 +84,9 @@ class RoleSelectionScreen extends StatelessWidget {
                 subtitle: 'Manage menu, orders & live inventory',
                 isPrimary: false,
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Seller Portal coming up!'),
-                      duration: Duration(seconds: 2),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SellerAccessScreen(),
                     ),
                   );
                 },
