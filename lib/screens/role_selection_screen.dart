@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'seller/seller_access_screen.dart';
+import 'customer/qr_scanner_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -10,189 +11,134 @@ class RoleSelectionScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 32),
-              // Brand header
+              const SizedBox(height: 24),
+
+              // Header: Q2 Emblem + QR Query text (Matching 2nd Picture)
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
                     'assets/images/q2_logo_cropped.png',
-                    width: 44,
-                    height: 44,
-                    errorBuilder: (_, _, _) => const Icon(Icons.qr_code, size: 40),
+                    width: 42,
+                    height: 42,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Q',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Image.asset(
                     'assets/images/q2_text_cropped.png',
-                    width: 110,
-                    errorBuilder: (_, _, _) => const Text(
+                    width: 120,
+                    errorBuilder: (_, __, ___) => const Text(
                       'QR Query',
                       style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
                         fontFamily: 'monospace',
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 48),
 
+              const Spacer(flex: 2),
+
+              // Main Heading: "Who would be using?" (Matching 2nd Picture)
               const Text(
-                'Welcome to Q2',
+                'Who would be using?',
                 style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                  letterSpacing: -0.5,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                  letterSpacing: -0.2,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Fast, seamless cafeteria ordering from your table.',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey.shade600,
-                  height: 1.4,
-                ),
-              ),
-              const Spacer(),
 
-              // Role cards
-              _RoleCard(
-                icon: Icons.qr_code_scanner_rounded,
-                title: 'Customer',
-                subtitle: 'Scan table QR code to view menu & order',
-                isPrimary: true,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Not finished!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 36),
 
-              _RoleCard(
-                icon: Icons.storefront_outlined,
-                title: 'Seller Portal',
-                subtitle: 'Manage menu, orders & live inventory',
-                isPrimary: false,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SellerAccessScreen(),
-                    ),
-                  );
-                },
-              ),
-              // const SizedBox(height: 14),
-
-              // _RoleCard(
-              //   icon: Icons.admin_panel_settings_outlined,
-              //   title: 'Administrator',
-              //   subtitle: 'Approve & oversee cafeteria store accounts',
-              //   isPrimary: false,
-              //   onTap: () {
-              //     ScaffoldMessenger.of(context).showSnackBar(
-              //       const SnackBar(
-              //         content: Text('Admin Console coming up!'),
-              //         duration: Duration(seconds: 2),
-              //       ),
-              //    );
-              //  },
-              // ),
-              const Spacer(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RoleCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool isPrimary;
-  final VoidCallback onTap;
-
-  const _RoleCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.isPrimary,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: isPrimary ? Colors.black : Colors.grey.shade50,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isPrimary ? Colors.black : Colors.grey.shade300,
-              width: 1.2,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isPrimary
-                      ? Colors.white.withAlpha(30)
-                      : Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  size: 26,
-                  color: isPrimary ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: isPrimary ? Colors.white : Colors.black87,
+              // Seller Button (Matching 2nd Picture)
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const SellerAccessScreen(),
                       ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isPrimary ? Colors.white70 : Colors.grey.shade600,
-                      ),
+                  ),
+                  child: const Text(
+                    'Seller',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
+                  ),
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: isPrimary ? Colors.white70 : Colors.grey.shade400,
+
+              const SizedBox(height: 16),
+
+              // Customer Button (Matching 2nd Picture)
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const QrScannerScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Customer',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
+
+              const Spacer(flex: 3),
             ],
           ),
         ),
