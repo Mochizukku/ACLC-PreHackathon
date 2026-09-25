@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'widgets/seller_brand_header.dart';
 import 'seller_home_screen.dart';
+import '../../services/seller_auth_service.dart';
 
 class SellerPinVerificationScreen extends StatefulWidget {
   final String email;
@@ -21,6 +22,8 @@ class _SellerPinVerificationScreenState
   static const int _pinLength = 6;
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
+  String? _errorMessage;
+  bool _isResending = false;
 
   @override
   void initState() {
@@ -41,17 +44,55 @@ class _SellerPinVerificationScreenState
   }
 
   void _onVerify() {
-    // Navigate to empty SellerHomeScreen
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const SellerHomeScreen()),
-      (route) => route.isFirst,
+    final enteredPin = _controllers.map((c) => c.text).join();
+    final isValid = SellerAuthService.instance.verifyPin(
+      enteredPin: enteredPin,
+      email: widget.email,
     );
+
+    if (isValid) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const SellerHomeScreen()),
+        (route) => route.isFirst,
+      );
+    } else {
+      setState(() {
+        _errorMessage = 'Invalid PIN. Please check the 6-digit PIN sent to ${widget.email}.';
+      });
+    }
   }
 
-  void _onResendPin() {
+  Future<void> _onResendPin() async {
+    if (_isResending) return;
+
+    setState(() {
+      _isResending = true;
+      _errorMessage = null;
+    });
+
+    final result = await SellerAuthService.instance.sendPinEmail(
+      recipientEmail: widget.email,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isResending = false;
+    });
+
+    for (final controller in _controllers) {
+      controller.clear();
+    }
+    _focusNodes[0].requestFocus();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('PIN resent to ${widget.email}'),
+        content: Text(
+          result.success
+              ? 'PIN resent to ${widget.email}'
+              : (result.errorMessage ?? 'Failed to resend PIN'),
+        ),
+        backgroundColor: result.success ? null : Colors.red.shade700,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -128,7 +169,7 @@ class _SellerPinVerificationScreenState
                         textAlign: TextAlign.center,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          LengthLimitingTextInputFormatter(1),
+                          LengthLimitingTextInputFormatter(_pinLength),
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         style: const TextStyle(
@@ -140,22 +181,53 @@ class _SellerPinVerificationScreenState
                           contentPadding: EdgeInsets.zero,
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFC4C4C4),
+                            borderSide: BorderSide(
+                              color: _errorMessage != null
+                                  ? Colors.red.shade400
+                                  : const Color(0xFFC4C4C4),
                               width: 1.2,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Colors.black87,
+                            borderSide: BorderSide(
+                              color: _errorMessage != null
+                                  ? Colors.red.shade700
+                                  : Colors.black87,
                               width: 1.6,
                             ),
                           ),
                         ),
                         onChanged: (value) {
+                          if (_errorMessage != null) {
+                            setState(() {
+                              _errorMessage = null;
+                            });
+                          }
+                          // Handle pasting multi-digit PIN
+                          if (value.length > 1) {
+                            final digitsOnly =
+                                value.replaceAll(RegExp(r'\D'), '');
+                            for (int i = 0;
+                                i < digitsOnly.length && (index + i) < _pinLength;
+                                i++) {
+                              _controllers[index + i].text = digitsOnly[i];
+                            }
+                            final nextIndex = (index + digitsOnly.length)
+                                .clamp(0, _pinLength - 1);
+                            _focusNodes[nextIndex].requestFocus();
+                            if (_controllers.every((c) => c.text.isNotEmpty)) {
+                              _onVerify();
+                            }
+                            return;
+                          }
                           if (value.isNotEmpty && index < _pinLength - 1) {
                             _focusNodes[index + 1].requestFocus();
+                          }
+                          if (index == _pinLength - 1 && value.isNotEmpty) {
+                            if (_controllers.every((c) => c.text.isNotEmpty)) {
+                              _onVerify();
+                            }
                           }
                         },
                       ),
@@ -163,7 +235,21 @@ class _SellerPinVerificationScreenState
                   );
                 }),
               ),
-              const SizedBox(height: 44),
+
+              // Error message display
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 36),
 
               // Verify Button
               SizedBox(

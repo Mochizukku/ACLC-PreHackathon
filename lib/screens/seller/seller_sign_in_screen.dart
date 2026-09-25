@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'widgets/seller_brand_header.dart';
 import 'seller_pin_verification_screen.dart';
 
+import '../../services/seller_auth_service.dart';
+
 class SellerSignInScreen extends StatefulWidget {
   const SellerSignInScreen({super.key});
 
@@ -12,6 +14,7 @@ class SellerSignInScreen extends StatefulWidget {
 class _SellerSignInScreenState extends State<SellerSignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _rememberMe = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -19,12 +22,40 @@ class _SellerSignInScreenState extends State<SellerSignInScreen> {
     super.dispose();
   }
 
-  void _onSignIn() {
+  Future<void> _onSignIn() async {
+    if (_isLoading) return;
+
     final email = _emailController.text.trim();
+    final targetEmail = email.isNotEmpty ? email : 'sample@email.com';
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await SellerAuthService.instance.sendPinEmail(
+      recipientEmail: targetEmail,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (!result.success && result.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.errorMessage!),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => SellerPinVerificationScreen(
-          email: email.isNotEmpty ? email : 'sample@email.com',
+          email: targetEmail,
         ),
       ),
     );
@@ -135,23 +166,33 @@ class _SellerSignInScreenState extends State<SellerSignInScreen> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _onSignIn,
+                  onPressed: _isLoading ? null : _onSignIn,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.black87,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
-                  child: const Text(
-                    'SIGN IN',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'SIGN IN',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                 ),
               ),
             ],
