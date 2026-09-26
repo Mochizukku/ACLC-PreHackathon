@@ -1,8 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../../services/store_repository.dart';
+import '../seller_product_detail_screen.dart';
 
 const _ink = Color(0xFF1E1E1E);
-const _muted = Color(0xFF606060);
-const _tileBackground = Color(0xFFD9D9D9);
 
 class SellerProductsTab extends StatefulWidget {
   const SellerProductsTab({super.key});
@@ -12,106 +13,26 @@ class SellerProductsTab extends StatefulWidget {
 }
 
 class _SellerProductsTabState extends State<SellerProductsTab> {
-  final List<Map<String, dynamic>> _products = [
-    {
-      'name': 'Siomai',
-      'stock': '15',
-      'icon': Icons.lunch_dining_outlined,
-      'color': Color(0xFFF5A65B),
-    },
-    {
-      'name': 'Chicken Cutlet',
-      'stock': '10',
-      'icon': Icons.fastfood_outlined,
-      'color': Color(0xFFE7B36B),
-    },
-    {
-      'name': 'Siopao Asado',
-      'stock': '20',
-      'icon': Icons.bakery_dining_outlined,
-      'color': Color(0xFFD99A6C),
-    },
-    {
-      'name': 'Bagnet',
-      'stock': '5',
-      'icon': Icons.ramen_dining_outlined,
-      'color': Color(0xFFD0A57D),
-    },
-    {
-      'name': 'Gyoza',
-      'stock': '8',
-      'icon': Icons.dinner_dining_outlined,
-      'color': Color(0xFFE2C69D),
-    },
-    {
-      'name': 'Bicol Express',
-      'stock': '12',
-      'icon': Icons.rice_bowl_outlined,
-      'color': Color(0xFFE4A26F),
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    StoreRepository.instance.addListener(_onStoreChanged);
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(12, 18, 12, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Products',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                  ),
-                ),
-                Semantics(
-                  button: true,
-                  label: 'Add Product',
-                  child: IconButton(
-                    onPressed: _showAddProductDialog,
-                    tooltip: 'Add Product',
-                    icon: const Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: _ink,
-                      size: 25,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _products.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1,
-            ),
-            itemBuilder: (context, index) {
-              final product = _products[index];
-              return _ProductTile(
-                name: product['name'] as String,
-                stock: product['stock'] as String,
-                icon: product['icon'] as IconData,
-                color: product['color'] as Color,
-                onEdit: () => _editProduct(index),
-                onDelete: () => _confirmDelete(index),
-              );
-            },
-          ),
-        ],
+  void dispose() {
+    StoreRepository.instance.removeListener(_onStoreChanged);
+    super.dispose();
+  }
+
+  void _onStoreChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _navigateToDetail(SellerProductItem product) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SellerProductDetailScreen(product: product),
       ),
     );
   }
@@ -119,25 +40,41 @@ class _SellerProductsTabState extends State<SellerProductsTab> {
   void _showAddProductDialog() {
     final nameController = TextEditingController();
     final stockController = TextEditingController();
+    final priceController = TextEditingController(text: '7.00');
 
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Add Product'),
+          title: const Text('Add New Product'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
                 autofocus: true,
-                decoration: const InputDecoration(labelText: 'Product Name'),
+                decoration: const InputDecoration(
+                  labelText: 'Product Name',
+                  hintText: 'e.g. Lumpia Shanghai',
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
+              TextField(
+                controller: priceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Price per piece (₱)',
+                  hintText: 'e.g. 7.00',
+                ),
+              ),
+              const SizedBox(height: 10),
               TextField(
                 controller: stockController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Stock'),
+                decoration: const InputDecoration(
+                  labelText: 'Stock (pieces)',
+                  hintText: 'e.g. 25',
+                ),
               ),
             ],
           ),
@@ -149,21 +86,21 @@ class _SellerProductsTabState extends State<SellerProductsTab> {
             ElevatedButton(
               onPressed: () {
                 final name = nameController.text.trim();
+                final stock = int.tryParse(stockController.text.trim()) ?? 0;
+                final price = double.tryParse(priceController.text.trim()) ?? 7.00;
                 if (name.isNotEmpty) {
-                  setState(() {
-                    _products.add({
-                      'name': name,
-                      'stock': stockController.text.trim().isEmpty
-                          ? '0'
-                          : stockController.text.trim(),
-                      'icon': Icons.inventory_2_outlined,
-                      'color': const Color(0xFFB7C6C2),
-                    });
-                  });
+                  StoreRepository.instance.addProduct(name, stock);
+                  // Update price on freshly added product
+                  final added = StoreRepository.instance.products.last;
+                  added.price = price;
+                  StoreRepository.instance.notifyAll();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Added "$name" (${stock} pcs)')),
+                  );
                 }
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Add'),
+              child: const Text('Add Product'),
             ),
           ],
         );
@@ -171,188 +108,152 @@ class _SellerProductsTabState extends State<SellerProductsTab> {
     ).whenComplete(() {
       nameController.dispose();
       stockController.dispose();
+      priceController.dispose();
     });
   }
 
-  void _editProduct(int index) {
-    final product = _products[index];
-    final nameController = TextEditingController(
-      text: product['name'] as String,
-    );
-    final stockController = TextEditingController(
-      text: product['stock'] as String,
-    );
+  @override
+  Widget build(BuildContext context) {
+    final repo = StoreRepository.instance;
+    final products = repo.products;
 
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Edit Product'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row: "Products" + Add "+" button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Product Name'),
+              const Text(
+                'Products',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                  letterSpacing: -0.3,
+                ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: stockController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Stock'),
+              IconButton(
+                onPressed: _showAddProductDialog,
+                icon: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _products[index]['name'] = nameController.text.trim().isEmpty
-                      ? product['name']
-                      : nameController.text.trim();
-                  _products[index]['stock'] =
-                      stockController.text.trim().isEmpty
-                      ? product['stock']
-                      : stockController.text.trim();
-                });
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    ).whenComplete(() {
-      nameController.dispose();
-      stockController.dispose();
-    });
-  }
+          const SizedBox(height: 18),
 
-  void _confirmDelete(int index) {
-    final productName = _products[index]['name'] as String;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Delete Product'),
-          content: Text('Are you sure you want to delete $productName?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+          // 2-Column Grid — tap opens Product Detail Screen
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: products.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 0.88,
             ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _products.removeAt(index);
-                });
-                Navigator.of(dialogContext).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF0202),
-              ),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return _ProductTile(
+                product: product,
+                onTap: () => _navigateToDetail(product),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _ProductTile extends StatelessWidget {
-  final String name;
-  final String stock;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final SellerProductItem product;
+  final VoidCallback onTap;
 
   const _ProductTile({
-    required this.name,
-    required this.stock,
-    required this.icon,
-    required this.color,
-    required this.onEdit,
-    required this.onDelete,
+    required this.product,
+    required this.onTap,
   });
+
+  Widget _image() {
+    if (product.imageBytes != null) {
+      return Image.memory(
+        Uint8List.fromList(product.imageBytes!),
+        fit: BoxFit.cover,
+      );
+    }
+    return Image.network(
+      product.imageUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        color: const Color(0xFF262626),
+        child: const Center(
+          child: Icon(Icons.fastfood_rounded, color: Colors.white54, size: 40),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: _tileBackground,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onEdit,
-        borderRadius: BorderRadius.circular(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(8),
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  size: 42,
-                  color: _ink.withValues(alpha: 0.72),
+            _image(),
+
+            // Gradient overlay
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Colors.black87],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.5, 1.0],
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
+
+            // Text overlay: "Name N pcs."
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Text(
+                '${product.name} ${product.stock} pcs.',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black54,
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    stock,
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
-                    ),
-                    iconSize: 18,
-                    icon: const Icon(Icons.more_vert, color: _muted),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        onEdit();
-                      } else {
-                        onDelete();
-                      }
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(value: 'delete', child: Text('Delete')),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

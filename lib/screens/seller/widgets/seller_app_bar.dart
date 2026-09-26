@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'seller_brand_header.dart';
+import '../seller_profile_screen.dart';
 
 class SellerAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onNotificationTap;
@@ -19,16 +20,23 @@ class SellerAppBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleSpacing: 24,
+      automaticallyImplyLeading: false, // Removes back button from dashboard
       title: const SellerBrandHeader(logoSize: 40, textWidth: 90),
       actions: [
         IconButton(
-          onPressed: () {},
-          tooltip: 'Account',
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const SellerProfileScreen(),
+              ),
+            );
+          },
+          tooltip: 'Profile',
           icon: Container(
             width: 30,
             height: 30,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F4F6),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF3F4F6),
               shape: BoxShape.circle,
             ),
             child: const Icon(

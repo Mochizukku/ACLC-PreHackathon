@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../models/menu_item.dart';
 import '../../theme/app_theme.dart';
+import '../../services/store_repository.dart';
 
 class WaitingStatusScreen extends StatefulWidget {
   final CustomerOrder order;
@@ -28,14 +29,32 @@ class _WaitingStatusScreenState extends State<WaitingStatusScreen> {
   @override
   void initState() {
     super.initState();
+    StoreRepository.instance.addOrder(widget.order);
+    StoreRepository.instance.addListener(_onStoreRepositoryChanged);
     _startCountdownTimer();
   }
 
   @override
   void dispose() {
+    StoreRepository.instance.removeListener(_onStoreRepositoryChanged);
     _autoAdvanceTimer?.cancel();
     _prepCountdownTimer?.cancel();
     super.dispose();
+  }
+
+  void _onStoreRepositoryChanged() {
+    final updatedOrder = StoreRepository.instance.allOrders.firstWhere(
+      (o) => o.orderId == widget.order.orderId,
+      orElse: () => widget.order,
+    );
+    if (mounted && updatedOrder.status != widget.order.status) {
+      setState(() {
+        widget.order.status = updatedOrder.status;
+      });
+      if (widget.order.status == OrderStatus.readyForPickup) {
+        _showReadyNotificationSnackbar();
+      }
+    }
   }
 
   void _startCountdownTimer() {
