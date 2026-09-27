@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/menu_item.dart';
 import '../../data/sample_menu.dart';
-import '../../theme/app_theme.dart';
 import '../../utils/content_filter.dart';
 
 class MenuOrderingScreen extends StatefulWidget {
@@ -809,7 +808,7 @@ class _MenuOrderingScreenState extends State<MenuOrderingScreen> {
                                       Container(
                                         height: 110,
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.7),
+                                          color: Colors.black.withValues(alpha: 0.7),
                                           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                                         ),
                                         child: const Center(

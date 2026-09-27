@@ -21,7 +21,7 @@ class SellerBrandHeader extends StatelessWidget {
           width: logoSize,
           height: logoSize,
           fit: BoxFit.contain,
-          errorBuilder: (_, _, _) => Icon(
+          errorBuilder: (_, __, ___) => Icon(
             Icons.qr_code_2_rounded,
             size: logoSize,
             color: Colors.black,
@@ -32,7 +32,7 @@ class SellerBrandHeader extends StatelessWidget {
           'assets/images/q2_text_cropped.png',
           width: textWidth,
           fit: BoxFit.contain,
-          errorBuilder: (_, _, _) => const Text(
+          errorBuilder: (_, __, ___) => const Text(
             'QR Query',
             style: TextStyle(
               fontSize: 18,

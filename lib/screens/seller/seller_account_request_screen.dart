@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'widgets/seller_brand_header.dart';
 import 'seller_request_confirmation_screen.dart';
+import '../../services/admin_sync_service.dart';
 
 class SellerAccountRequestScreen extends StatefulWidget {
   const SellerAccountRequestScreen({super.key});
@@ -31,6 +32,14 @@ class _SellerAccountRequestScreenState
   }
 
   void _onSubmit() {
+    AdminSyncService.instance.submitSellerRequest(
+      storeName: _storeNameController.text.trim(),
+      applicantName: _applicantNameController.text.trim(),
+      email: _emailController.text.trim(),
+      contactNumber: _contactNumberController.text.trim(),
+      reason: _reasonController.text.trim(),
+    );
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const SellerRequestConfirmationScreen(),
