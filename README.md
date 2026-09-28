@@ -4,6 +4,8 @@ QR Query (Q2) is a QR-based ordering system designed for a school cafeteria. It 
 
 The system provides separate functions for **Customers**, **Sellers**, and **Administrators**.
 
+The project is currently being developed as a **system prototype** and **demonstration**. Due to the limited development time, the current implementation focuses on demonstrating the **intended application flow**, **user experience**, and **interaction between system roles** rather than implementing the complete backend functionality.
+
 ## Project Scope
 
 The current system is designed for:
@@ -17,6 +19,8 @@ The current system is designed for:
 * Order tracking and notifications
 * Receipt and transaction history
 * Administrator-managed seller accounts
+
+For the current demo, these features are represented primarily through **predefined data**, **interface screens**, **navigation**, and **simulated actions**.
 
 ## Main Components
 
@@ -36,6 +40,8 @@ Customers can:
 * View the completed order receipt
 * Start another order using the same customer name
 
+The current prototype focuses on showing the complete customer journey from scanning the QR code to completing an order.
+
 ### Seller
 
 Sellers can:
@@ -51,6 +57,8 @@ Sellers can:
 * Manage product unavailability during preparation
 * View transaction history
 
+For the current demo, seller actions may use simulated or predefined data to demonstrate the expected workflow.
+
 ### Administrator
 
 Administrators can:
@@ -59,6 +67,25 @@ Administrators can:
 * Review seller requests
 * Create seller accounts
 * Deactivate seller accounts when applicable
+
+These functions are presented as part of the proposed administrator workflow and may not include full backend account management in the current prototype.
+
+## Demo Approach
+
+The current development priority is to produce a **presentable demonstration of how Q2 would work as a complete system**.
+
+The prototype focuses on: 
+
+* User interface and screen design
+* Navigation between screens
+* Customer, seller, and administrator workflows
+* Simulated system states
+* Sample products, orders, and transactions
+* Demonstrating the intended user experience
+
+Full backend functionality, persistent data storage, real authentication, live notifications, and other system integrations are outside the immediate demo scope.
+
+The objective is to demonstrate the **system concept and application flow** clearly before implementing the complete functionality.
 
 ## Documentation
 
@@ -72,7 +99,7 @@ Additional project documentation will be added as the system develops.
 
 The project is currently under development.
 
-Requirements and system behavior may be refined as development, testing, and review progress.
+The current version is intended for demonstrating the proposed system flow. Full functionality may be implemented in a later development stage as time and project requirements allow.
 
 ## Purpose
 
