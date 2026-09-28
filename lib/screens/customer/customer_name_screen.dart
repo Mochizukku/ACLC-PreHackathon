@@ -3,7 +3,7 @@ import '../../utils/content_filter.dart';
 
 class CustomerNameScreen extends StatefulWidget {
   final String tableNumber;
-  final Function(String name) onNameSubmitted;
+  final Function(String name, String customerId) onNameSubmitted;
   final VoidCallback onRescan;
 
   const CustomerNameScreen({
@@ -34,7 +34,9 @@ class _CustomerNameScreenState extends State<CustomerNameScreen> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      widget.onNameSubmitted(_nameController.text.trim());
+      final name = _nameController.text.trim();
+      final customerId = 'cust_${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+      widget.onNameSubmitted(name, customerId);
     }
   }
 

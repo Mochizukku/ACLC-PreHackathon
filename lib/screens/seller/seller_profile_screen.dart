@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/store_repository.dart';
 import '../role_selection_screen.dart';
 
 class SellerProfileScreen extends StatelessWidget {
@@ -41,8 +42,9 @@ class SellerProfileScreen extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
-            ElevatedButton(
+              ElevatedButton(
               onPressed: () {
+                StoreRepository.instance.clearSession();
                 Navigator.of(dialogContext).pop();
                 // Navigate all the way back to role selection
                 Navigator.of(context).pushAndRemoveUntil(
@@ -73,6 +75,19 @@ class SellerProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final repo = StoreRepository.instance;
+    final applicantName = repo.applicantName.isNotEmpty
+        ? repo.applicantName
+        : (repo.sellerEmail?.split('@').first ?? 'Store Owner');
+    final storeName = repo.activeStoreName.isNotEmpty
+        ? repo.activeStoreName
+        : 'Campus Store';
+    final email = repo.sellerEmail ?? 'seller@q2app.com';
+    final contact = repo.contactNumber.isNotEmpty
+        ? repo.contactNumber
+        : 'Not specified';
+    final status = repo.accountStatus;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -117,40 +132,54 @@ class SellerProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              const Text(
-                'Store Owner',
-                style: TextStyle(
+              Text(
+                applicantName,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF1E1E1E),
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Seller Account',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF9CA3AF),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Text(
+                  'Verified $status Seller',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green.shade800,
+                  ),
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
               // Profile Info Section
               _ProfileTile(
+                icon: Icons.person_outline,
+                label: 'Applicant / Owner Name',
+                value: applicantName,
+              ),
+              _ProfileTile(
                 icon: Icons.storefront_outlined,
                 label: 'Store Name',
-                value: 'Campus Cafeteria',
+                value: storeName,
               ),
               _ProfileTile(
                 icon: Icons.email_outlined,
-                label: 'Email',
-                value: 'seller@q2app.com',
+                label: 'Registered Email',
+                value: email,
               ),
               _ProfileTile(
                 icon: Icons.phone_outlined,
-                label: 'Contact',
-                value: '+63 912 345 6789',
+                label: 'Contact Number',
+                value: contact,
               ),
 
               const Spacer(),

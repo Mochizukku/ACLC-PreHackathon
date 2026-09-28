@@ -1,7 +1,7 @@
 {
   "stats": {
-    "activeAccounts": 224,
-    "sellerAccountsTotal": 1085,
+    "activeAccounts": 4,
+    "sellerAccountsTotal": 8,
     "missedRequestsTotal": 4,
     "chart": {
       "yMax": 100,
@@ -33,40 +33,76 @@
   },
   "accounts": [
     {
-      "id": "acc-1790468316160",
-      "storeName": "Campus Milk Tea Express",
-      "applicantName": "David Lim",
-      "email": "david.milktea@gmail.com",
-      "contact": "+63 917 999 1122",
+      "id": "acc-23967179-ee26-4ac5-80fa-367783a56e54",
+      "storeName": "Kent",
+      "applicantName": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "09913651988",
       "status": "Active",
-      "registeredAt": "2026-09-27T00:18:36.160Z"
+      "registeredAt": "2026-09-28T07:18:34.174Z"
     },
     {
-      "id": "acc-101",
+      "id": "acc-41bd6653-7440-4348-adc9-f1a34e429e09",
+      "storeName": "Kent Sari Sari Store",
+      "applicantName": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "09913651988",
+      "status": "Archived",
+      "registeredAt": "2026-09-28T06:52:01.399Z"
+    },
+    {
+      "id": "acc-4645df8d-5f5d-47e2-8a62-91a3ee44151a",
+      "storeName": "Kent's Special Grill & Burger",
+      "applicantName": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Inactive",
+      "registeredAt": "2026-09-27T14:32:55.268Z"
+    },
+    {
+      "id": "acc-kent-001",
+      "storeName": "Kent's Campus Diner",
+      "applicantName": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Inactive",
+      "registeredAt": "2026-08-28T01:20:27.311Z"
+    },
+    {
+      "id": "acc-002",
       "storeName": "Campus Cafeteria Hub (Main)",
       "applicantName": "Maria Santos",
-      "email": "canteen.main@school.edu.ph",
-      "contact": "+63 917 123 4567",
+      "email": "maria.cafeteria@school.edu.ph",
+      "contact": "+63 918 123 4567",
       "status": "Active",
-      "registeredAt": "2026-08-15T09:00:00Z"
+      "registeredAt": "2026-09-02T01:20:27.311Z"
     },
     {
-      "id": "acc-102",
-      "storeName": "Q2 Quick Bites & Drinks",
-      "applicantName": "Juan Dela Cruz",
-      "email": "juan.bites@school.edu.ph",
-      "contact": "+63 918 555 8899",
+      "id": "acc-003",
+      "storeName": "Kape & Pastry Corner",
+      "applicantName": "Angela Reyes",
+      "email": "angela.reyes@gmail.com",
+      "contact": "+63 919 444 3322",
       "status": "Active",
-      "registeredAt": "2026-09-01T10:30:00Z"
+      "registeredAt": "2026-09-09T01:20:27.311Z"
     },
     {
-      "id": "acc-103",
+      "id": "acc-004",
+      "storeName": "Bento Express Bowl",
+      "applicantName": "Kenji Sato",
+      "email": "kenji.bento@gmail.com",
+      "contact": "+63 922 710 4321",
+      "status": "Active",
+      "registeredAt": "2026-09-17T01:20:27.311Z"
+    },
+    {
+      "id": "acc-005",
       "storeName": "Green Garden Salads",
       "applicantName": "Elena Rostova",
       "email": "elena.green@school.edu.ph",
       "contact": "+63 920 334 1122",
       "status": "Inactive",
-      "registeredAt": "2026-07-20T14:15:00Z"
+      "registeredAt": "2026-09-22T01:20:27.311Z"
     }
   ],
   "requests": [

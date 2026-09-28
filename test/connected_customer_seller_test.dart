@@ -5,6 +5,7 @@ import 'package:q2_app/utils/content_filter.dart';
 
 void main() {
   setUp(() {
+    StoreRepository.instance.clearSession();
     StoreRepository.instance.resetBanState();
   });
 
@@ -34,7 +35,12 @@ void main() {
 
   test('Adding customer order reflects in incoming orders and updates stock on PAID', () {
     final repo = StoreRepository.instance;
-    final initialSiomaiStock = repo.products.firstWhere((p) => p.name == 'Siomai').stock;
+
+    // Add a Siomai product since StoreRepository no longer pre-loads default products
+    repo.addProduct('Siomai', 30,
+        'https://images.unsplash.com/photo-1496116218417-1a781b1c416c');
+    final initialSiomaiStock =
+        repo.products.firstWhere((p) => p.name == 'Siomai').stock;
 
     final testOrder = CustomerOrder(
       orderId: '999',
@@ -72,7 +78,8 @@ void main() {
     expect(repo.incomingOrders.isEmpty, true);
 
     // Verify stock is deducted by 2 pieces
-    final updatedSiomaiStock = repo.products.firstWhere((p) => p.name == 'Siomai').stock;
+    final updatedSiomaiStock =
+        repo.products.firstWhere((p) => p.name == 'Siomai').stock;
     expect(updatedSiomaiStock, initialSiomaiStock - 2);
   });
 }

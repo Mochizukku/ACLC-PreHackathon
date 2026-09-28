@@ -7,8 +7,13 @@ import 'tabs/seller_products_tab.dart';
 
 class SellerHomeScreen extends StatefulWidget {
   final int initialTabIndex;
+  final String sellerEmail;
 
-  const SellerHomeScreen({super.key, this.initialTabIndex = 0});
+  const SellerHomeScreen({
+    super.key,
+    this.initialTabIndex = 0,
+    this.sellerEmail = '',
+  });
 
   @override
   State<SellerHomeScreen> createState() => _SellerHomeScreenState();

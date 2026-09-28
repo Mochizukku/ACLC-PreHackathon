@@ -254,6 +254,87 @@ const FirebaseDB = {
     return account;
   },
 
+  async archiveAccount(id) {
+    const account = await this.getAccountById(id);
+    if (!account) return null;
+    account.status = 'Archived';
+    account.updated_at = new Date().toISOString();
+    await this.saveAccount(account);
+    return account;
+  },
+
+  async unarchiveAccount(id) {
+    const account = await this.getAccountById(id);
+    if (!account) return null;
+    account.status = 'Active';
+    account.updated_at = new Date().toISOString();
+    await this.saveAccount(account);
+    return account;
+  },
+
+  async deleteAccount(id) {
+    if (isLiveFirebase) {
+      await firestoreDb.collection('seller_accounts').doc(id).delete();
+      return true;
+    }
+    const data = loadLocalData();
+    const idx = data.seller_accounts.findIndex(a => a.id === id);
+    if (idx >= 0) {
+      data.seller_accounts.splice(idx, 1);
+      saveLocalData(data);
+      return true;
+    }
+    return false;
+  },
+
+  async deduplicateAccounts() {
+    if (isLiveFirebase) return [];
+    const data = loadLocalData();
+    if (!data.seller_accounts || !data.seller_accounts.length) return [];
+    
+    const uniqueMap = new Map();
+    for (const acc of data.seller_accounts) {
+      const key = (acc.store_name || '').toLowerCase().trim();
+      if (!key) continue;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, acc);
+      } else {
+        const existing = uniqueMap.get(key);
+        if (existing.status !== 'Active' && acc.status === 'Active') {
+          uniqueMap.set(key, acc);
+        } else if (existing.status === acc.status && new Date(acc.created_at || 0) > new Date(existing.created_at || 0)) {
+          uniqueMap.set(key, acc);
+        }
+      }
+    }
+
+    data.seller_accounts = Array.from(uniqueMap.values());
+    saveLocalData(data);
+
+    // Sync admin_data.json
+    const adminDataPath = path.join(__dirname, 'data', 'admin_data.json');
+    if (fs.existsSync(adminDataPath)) {
+      try {
+        const adminData = JSON.parse(fs.readFileSync(adminDataPath, 'utf8'));
+        adminData.accounts = data.seller_accounts.map(a => ({
+          id: a.id,
+          storeName: a.store_name,
+          applicantName: a.applicant_name,
+          email: a.email,
+          contact: a.contact,
+          status: a.status,
+          registeredAt: a.created_at || a.registeredAt
+        }));
+        adminData.stats.sellerAccountsTotal = adminData.accounts.length;
+        adminData.stats.activeAccounts = adminData.accounts.filter(a => a.status === 'Active').length;
+        fs.writeFileSync(adminDataPath, JSON.stringify(adminData, null, 2), 'utf8');
+      } catch (e) {
+        console.error('Error syncing admin_data.json:', e);
+      }
+    }
+    return data.seller_accounts;
+  },
+
   // --- Seller Requests ---
   async getRequests() {
     if (isLiveFirebase) {
@@ -300,6 +381,38 @@ const FirebaseDB = {
     }
     saveLocalData(data);
     return request;
+  },
+
+  async archiveRequest(id) {
+    const request = await this.getRequestById(id);
+    if (!request) return null;
+    request.previous_status = request.status;
+    request.status = 'Archived';
+    await this.saveRequest(request);
+    return request;
+  },
+
+  async unarchiveRequest(id) {
+    const request = await this.getRequestById(id);
+    if (!request) return null;
+    request.status = request.previous_status || 'Pending';
+    await this.saveRequest(request);
+    return request;
+  },
+
+  async deleteRequest(id) {
+    if (isLiveFirebase) {
+      await firestoreDb.collection('seller_requests').doc(id).delete();
+      return true;
+    }
+    const data = loadLocalData();
+    const idx = data.seller_requests.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      data.seller_requests.splice(idx, 1);
+      saveLocalData(data);
+      return true;
+    }
+    return false;
   },
 
   // --- Questionnaires ---

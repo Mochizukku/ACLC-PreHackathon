@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'widgets/seller_brand_header.dart';
 import 'seller_home_screen.dart';
 import '../../services/seller_auth_service.dart';
+import '../../services/store_repository.dart';
 
 class SellerPinVerificationScreen extends StatefulWidget {
   final String email;
@@ -43,7 +44,7 @@ class _SellerPinVerificationScreenState
     super.dispose();
   }
 
-  void _onVerify() {
+  Future<void> _onVerify() async {
     final enteredPin = _controllers.map((c) => c.text).join();
     final isValid = SellerAuthService.instance.verifyPin(
       enteredPin: enteredPin,
@@ -51,8 +52,26 @@ class _SellerPinVerificationScreenState
     );
 
     if (isValid) {
+      // Fetch seller's account info (store name, store id) from admin server
+      final accountInfo = await SellerAuthService.instance.fetchAccountInfo(widget.email);
+
+      // Init the per-seller session in StoreRepository
+      await StoreRepository.instance.initForSeller(
+        email: widget.email,
+        storeName: accountInfo?.storeName.isNotEmpty == true
+            ? accountInfo!.storeName
+            : widget.email.split('@').first,
+        storeId: accountInfo?.storeId ?? '',
+        applicantName: accountInfo?.applicantName ?? '',
+        contactNumber: accountInfo?.contactNumber ?? '',
+        status: accountInfo?.status ?? 'Active',
+      );
+
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const SellerHomeScreen()),
+        MaterialPageRoute(
+          builder: (context) => SellerHomeScreen(sellerEmail: widget.email),
+        ),
         (route) => route.isFirst,
       );
     } else {
