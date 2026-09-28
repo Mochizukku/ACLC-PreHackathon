@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/menu_item.dart';
 import '../../data/sample_menu.dart';
+import '../../services/store_repository.dart';
 import '../../utils/content_filter.dart';
 
 class MenuOrderingScreen extends StatefulWidget {
@@ -27,8 +28,24 @@ class _MenuOrderingScreenState extends State<MenuOrderingScreen> {
   final List<CartItem> _cart = [];
   String _orderType = 'Eat In'; // 'Eat In' or 'Take Out'
 
+  List<MenuItem> get _availableItems {
+    final sellerItems = StoreRepository.instance.getMenuItemsForActiveStore();
+    if (sellerItems.isNotEmpty) {
+      return sellerItems;
+    }
+    return SampleMenuData.items;
+  }
+
+  List<String> get _categories {
+    final set = {'All'};
+    for (final item in _availableItems) {
+      if (item.category.isNotEmpty) set.add(item.category);
+    }
+    return set.toList();
+  }
+
   List<MenuItem> get _filteredItems {
-    return SampleMenuData.items.where((item) {
+    return _availableItems.where((item) {
       final matchesCategory = _selectedCategory == 'All' || item.category == _selectedCategory;
       final matchesSearch = item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           item.description.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -727,9 +744,9 @@ class _MenuOrderingScreenState extends State<MenuOrderingScreen> {
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: SampleMenuData.categories.length,
+                itemCount: _categories.length,
                 itemBuilder: (context, index) {
-                  final cat = SampleMenuData.categories[index];
+                  final cat = _categories[index];
                   final isSelected = cat == _selectedCategory;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),

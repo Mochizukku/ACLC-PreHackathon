@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'customer_name_screen.dart';
 import 'menu_ordering_screen.dart';
 import 'order_summary_screen.dart';
 import 'waiting_status_screen.dart';
 import 'order_finished_screen.dart';
 import '../../models/menu_item.dart';
+import '../../services/store_repository.dart';
 
 class QrScannerScreen extends StatefulWidget {
   final Function(String tableNumber)? onTableScanned;
@@ -22,7 +25,9 @@ class QrScannerScreen extends StatefulWidget {
 
 class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProviderStateMixin {
   late AnimationController _scannerLaserController;
+  final MobileScannerController _cameraController = MobileScannerController();
   bool _isTorchOn = false;
+  bool _isProcessingScan = false;
 
   @override
   void initState() {
@@ -36,10 +41,48 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
   @override
   void dispose() {
     _scannerLaserController.dispose();
+    _cameraController.dispose();
     super.dispose();
   }
 
-  void _onSampleQRScanned([String tableNumber = 'Table #04']) {
+  void _onQRBarcodeScanned(String rawData) {
+    if (_isProcessingScan) return;
+    _isProcessingScan = true;
+
+    String storeName = "Kent's Campus Diner";
+    String tableNumber = "Table #04";
+
+    try {
+      if (rawData.startsWith('{')) {
+        final data = jsonDecode(rawData);
+        if (data['storeName'] != null) {
+          storeName = data['storeName'];
+        }
+      } else if (rawData.contains(':')) {
+        final parts = rawData.split(':');
+        if (parts.length >= 3) {
+          storeName = parts[2];
+        }
+      }
+    } catch (_) {}
+
+    // Active store set in StoreRepository
+    StoreRepository.instance.setActiveStore(storeName);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('📷 Scanned Store: $storeName ($tableNumber)'),
+        backgroundColor: Colors.green.shade800,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    _onSampleQRScanned(tableNumber, storeName);
+  }
+
+  void _onSampleQRScanned([String tableNumber = 'Table #04', String storeName = "Kent's Campus Diner"]) {
+    StoreRepository.instance.setActiveStore(storeName);
+
     if (widget.onTableScanned != null) {
       widget.onTableScanned!(tableNumber);
     } else {
@@ -48,19 +91,20 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
         MaterialPageRoute(
           builder: (context) => CustomerNameScreen(
             tableNumber: tableNumber,
-            onNameSubmitted: (customerName) {
-              _navigateToMenuOrdering(customerName, tableNumber);
+            onNameSubmitted: (customerName, customerId) {
+              _navigateToMenuOrdering(customerName, customerId, tableNumber);
             },
             onRescan: () {
+              _isProcessingScan = false;
               Navigator.of(context).pop();
             },
           ),
         ),
-      );
+      ).then((_) => _isProcessingScan = false);
     }
   }
 
-  void _navigateToMenuOrdering(String customerName, String tableNumber) {
+  void _navigateToMenuOrdering(String customerName, String customerId, String tableNumber) {
     // Step 2: Menu Ordering Screen
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -71,19 +115,20 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
             Navigator.of(context).pop();
           },
           onProceedToCheckout: (cartItems, orderType) {
-            _navigateToCheckout(customerName, tableNumber, orderType, cartItems);
+            _navigateToCheckout(customerName, customerId, tableNumber, orderType, cartItems);
           },
         ),
       ),
     );
   }
 
-  void _navigateToCheckout(String customerName, String tableNumber, String orderType, List<CartItem> cartItems) {
+  void _navigateToCheckout(String customerName, String customerId, String tableNumber, String orderType, List<CartItem> cartItems) {
     // Step 3: Order Summary & Checkout Screen
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => OrderSummaryScreen(
           customerName: customerName,
+          customerId: customerId,
           tableNumber: tableNumber,
           orderType: orderType,
           cartItems: cartItems,
@@ -123,7 +168,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
           order: completedOrder,
           onStartNewOrder: () {
             // Start a new order with same customer or table
-            _navigateToMenuOrdering(completedOrder.customerName, completedOrder.tableNumber);
+            _navigateToMenuOrdering(completedOrder.customerName, completedOrder.customerId, completedOrder.tableNumber);
           },
           onEndSession: () {
             // End session and return to Landing / Role Selection screen
@@ -172,96 +217,64 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
               ),
             ),
 
-            const Spacer(flex: 2),
+            const Spacer(flex: 1),
 
-            // Camera View Finder & Sample QR Code (Matching 3rd Picture)
+            // Live Camera Scanner View
             Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Outer White Rounded Corner Brackets (Matching 3rd Picture)
-                  CustomPaint(
-                    size: const Size(270, 270),
-                    painter: _ScannerBracketPainter(),
-                  ),
+              child: SizedBox(
+                width: 270,
+                height: 270,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Live Camera Feed
+                      MobileScanner(
+                        controller: _cameraController,
+                        onDetect: (capture) {
+                          final barcode = capture.barcodes.firstOrNull;
+                          if (barcode?.rawValue != null) {
+                            _onQRBarcodeScanned(barcode!.rawValue!);
+                          }
+                        },
+                      ),
 
-                  // Inner Sample QR Code Box (Matching 3rd Picture)
-                  GestureDetector(
-                    onTap: () => _onSampleQRScanned('Table #04'),
-                    child: Container(
-                      width: 190,
-                      height: 190,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                        boxShadow: [
-                          if (_isTorchOn)
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.6),
-                              blurRadius: 30,
-                              spreadRadius: 10,
+                      // Animated Red Laser Line Overlay
+                      AnimatedBuilder(
+                        animation: _scannerLaserController,
+                        builder: (context, child) {
+                          return Positioned(
+                            top: 10 + (_scannerLaserController.value * 245),
+                            child: Container(
+                              width: 250,
+                              height: 2.5,
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withValues(alpha: 0.85),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withValues(alpha: 0.4),
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
                             ),
-                        ],
+                          );
+                        },
                       ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Text(
-                                'Sample',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.2,
-                                ),
-                              ),
-                              Text(
-                                'QR code',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.2,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '(Tap to scan)',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
 
-                          // Animated Laser Scanner Line
-                          AnimatedBuilder(
-                            animation: _scannerLaserController,
-                            builder: (context, child) {
-                              return Positioned(
-                                top: 10 + (_scannerLaserController.value * 165),
-                                child: Container(
-                                  width: 170,
-                                  height: 2,
-                                  color: Colors.black.withValues(alpha: 0.8),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                      // Corner Bracket Overlay
+                      CustomPaint(
+                        size: const Size(270, 270),
+                        painter: _ScannerBracketPainter(),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             const Text(
               'Align QR code inside the frame to scan',
@@ -271,14 +284,66 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
               ),
             ),
 
-            const Spacer(flex: 3),
+            const SizedBox(height: 10),
 
-            // Bottom Torch Button (Matching 3rd Picture)
+            // Demo Mode buttons (for testing without physical QR)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Colors.white30, size: 14),
+                  const SizedBox(width: 6),
+                  const Flexible(
+                    child: Text(
+                      'No QR code? Tap a store below to demo:',
+                      style: TextStyle(color: Colors.white30, fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  "Kent's Campus Diner",
+                  "Kent's Crispy Chicken & Snacks",
+                  "Campus Cafeteria Hub (Main)",
+                  "Kape & Pastry Corner",
+                ].map((storeName) {
+                  return GestureDetector(
+                    onTap: () => _onSampleQRScanned('Table #04', storeName),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Text(
+                        storeName,
+                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            const Spacer(flex: 1),
+
+            // Bottom Torch Button
             GestureDetector(
               onTap: () {
                 setState(() {
                   _isTorchOn = !_isTorchOn;
                 });
+                _cameraController.toggleTorch();
               },
               child: Container(
                 width: 72,

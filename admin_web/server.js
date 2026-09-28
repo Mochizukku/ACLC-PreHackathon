@@ -3,8 +3,9 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const QRCode = require('qrcode');
 const FirebaseDB = require('./firebase_db');
-const { sendQuestionnaireEmail, sendApprovalEmail, sendRejectionEmail, sendMail } = require('./mailer');
+const { sendQuestionnaireEmail, sendApprovalEmail, sendRejectionEmail, sendOtpEmail, sendRequestReceivedEmail, sendMail } = require('./mailer');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -34,6 +35,18 @@ function parseBody(req) {
       try { resolve(JSON.parse(body)); } catch { resolve({}); }
     });
   });
+}
+
+function normalizeEmail(email) {
+  if (!email) return '';
+  let clean = email.trim().toLowerCase();
+  clean = clean.replace(/@gmail\.c$/i, '@gmail.com');
+  clean = clean.replace(/@gmail\.co$/i, '@gmail.com');
+  clean = clean.replace(/@gmal\.com$/i, '@gmail.com');
+  clean = clean.replace(/@gamil\.com$/i, '@gmail.com');
+  clean = clean.replace(/@gmail\.con$/i, '@gmail.com');
+  clean = clean.replace(/@gmail\.com\.com$/i, '@gmail.com');
+  return clean;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -87,6 +100,46 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    // Archive account
+    const archiveMatch = pathname.match(/^\/api\/accounts\/([^/]+)\/archive$/);
+    if (archiveMatch && method === 'POST') {
+      const updated = await FirebaseDB.archiveAccount(archiveMatch[1]);
+      if (!updated) return sendJson(res, 404, { error: 'Account not found' });
+      return sendJson(res, 200, {
+        success: true,
+        account: {
+          id: updated.id,
+          storeName: updated.store_name,
+          email: updated.email,
+          status: updated.status
+        }
+      });
+    }
+
+    // Unarchive account
+    const unarchiveMatch = pathname.match(/^\/api\/accounts\/([^/]+)\/unarchive$/);
+    if (unarchiveMatch && method === 'POST') {
+      const updated = await FirebaseDB.unarchiveAccount(unarchiveMatch[1]);
+      if (!updated) return sendJson(res, 404, { error: 'Account not found' });
+      return sendJson(res, 200, {
+        success: true,
+        account: {
+          id: updated.id,
+          storeName: updated.store_name,
+          email: updated.email,
+          status: updated.status
+        }
+      });
+    }
+
+    // Delete account permanently
+    const deleteAccMatch = pathname.match(/^\/api\/accounts\/([^/]+)$/);
+    if (deleteAccMatch && method === 'DELETE') {
+      const deleted = await FirebaseDB.deleteAccount(deleteAccMatch[1]);
+      if (!deleted) return sendJson(res, 404, { error: 'Account not found' });
+      return sendJson(res, 200, { success: true, message: 'Account permanently deleted' });
+    }
+
     const checkMatch = pathname.match(/^\/api\/accounts\/check\/(.+)$/);
     if (checkMatch && method === 'GET') {
       const email = decodeURIComponent(checkMatch[1]).toLowerCase();
@@ -102,6 +155,34 @@ const server = http.createServer(async (req, res) => {
           status: acc.status
         }
       });
+    }
+
+    const qrcodeMatch = pathname.match(/^\/api\/accounts\/([^/]+)\/qrcode$/);
+    if (qrcodeMatch && method === 'GET') {
+      const accounts = await FirebaseDB.getAccounts();
+      const acc = accounts.find(a => a.id === qrcodeMatch[1]);
+      if (!acc) return sendJson(res, 404, { error: 'Account not found' });
+      const payload = JSON.stringify({
+        type: 'q2_store',
+        storeId: acc.id,
+        storeName: acc.store_name,
+        email: acc.email
+      });
+      try {
+        const buf = await QRCode.toBuffer(payload, {
+          color: { dark: '#111827', light: '#FFFFFF' },
+          width: 512,
+          margin: 2
+        });
+        res.writeHead(200, {
+          'Content-Type': 'image/png',
+          'Content-Length': buf.length,
+          'Cache-Control': 'public, max-age=86400'
+        });
+        return res.end(buf);
+      } catch (err) {
+        return sendJson(res, 500, { error: err.message });
+      }
     }
 
     // ─────────────── REQUESTS ───────────────
@@ -125,7 +206,7 @@ const server = http.createServer(async (req, res) => {
         id: 'req-' + uuidv4(),
         store_name: body.storeName || '',
         applicant_name: body.applicantName || '',
-        email: body.email || '',
+        email: normalizeEmail(body.email || ''),
         contact: body.contactNumber || body.contact || '',
         status: 'Pending',
         questionnaire_token: null,
@@ -134,6 +215,20 @@ const server = http.createServer(async (req, res) => {
         reviewed_at: null
       };
       await FirebaseDB.saveRequest(newRequest);
+
+      // Instantly send request receipt confirmation email to applicant
+      if (newRequest.email) {
+        try {
+          await sendRequestReceivedEmail({
+            to: newRequest.email,
+            applicantName: newRequest.applicant_name,
+            storeName: newRequest.store_name
+          });
+        } catch (err) {
+          console.error('Failed to send instant request receipt email:', err.message);
+        }
+      }
+
       return sendJson(res, 201, {
         success: true,
         request: {
@@ -188,26 +283,43 @@ const server = http.createServer(async (req, res) => {
       reqRow.reviewed_at = new Date().toISOString();
       await FirebaseDB.saveRequest(reqRow);
 
-      // Create new account in Firebase
-      const accId = 'acc-' + uuidv4();
-      const newAccount = {
-        id: accId,
-        store_name: reqRow.store_name,
-        applicant_name: reqRow.applicant_name,
-        email: reqRow.email,
-        contact: reqRow.contact,
-        status: 'Active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      await FirebaseDB.saveAccount(newAccount);
+      // Check if account with same store_name or email already exists to prevent duplicate accounts
+      const allAccs = await FirebaseDB.getAccounts();
+      let accountToSave = allAccs.find(a => 
+        (a.store_name && a.store_name.toLowerCase().trim() === (reqRow.store_name || '').toLowerCase().trim()) ||
+        (a.email && a.email.toLowerCase().trim() === (reqRow.email || '').toLowerCase().trim())
+      );
+
+      let accId;
+      if (accountToSave) {
+        accId = accountToSave.id;
+        accountToSave.status = 'Active';
+        accountToSave.applicant_name = reqRow.applicant_name || accountToSave.applicant_name;
+        accountToSave.contact = reqRow.contact || accountToSave.contact;
+        accountToSave.updated_at = new Date().toISOString();
+      } else {
+        accId = 'acc-' + uuidv4();
+        accountToSave = {
+          id: accId,
+          store_name: reqRow.store_name,
+          applicant_name: reqRow.applicant_name,
+          email: reqRow.email,
+          contact: reqRow.contact,
+          status: 'Active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      }
+      await FirebaseDB.saveAccount(accountToSave);
 
       let emailStatus = 'sent';
+      const recipientEmail = normalizeEmail(reqRow.email);
       try {
         await sendApprovalEmail({
-          to: reqRow.email,
+          to: recipientEmail,
           applicantName: reqRow.applicant_name,
-          storeName: reqRow.store_name
+          storeName: reqRow.store_name,
+          storeId: accId
         });
       } catch (err) {
         emailStatus = 'failed: ' + err.message;
@@ -217,12 +329,26 @@ const server = http.createServer(async (req, res) => {
         success: true,
         emailStatus,
         account: {
-          id: newAccount.id,
-          storeName: newAccount.store_name,
-          email: newAccount.email,
-          status: newAccount.status
+          id: accountToSave.id,
+          storeName: accountToSave.store_name,
+          email: accountToSave.email,
+          status: accountToSave.status
         }
       });
+    }
+
+    // ─────────────── AUTH OTP ───────────────
+    if (pathname === '/api/auth/send-otp' && method === 'POST') {
+      const body = await parseBody(req);
+      const { email, pin } = body;
+      if (!email || !pin) return sendJson(res, 400, { error: 'email and pin are required' });
+
+      try {
+        await sendOtpEmail({ to: email, pin });
+        return sendJson(res, 200, { success: true, message: `OTP PIN sent to ${email}` });
+      } catch (err) {
+        return sendJson(res, 500, { success: false, error: err.message });
+      }
     }
 
     // Reject request
@@ -248,6 +374,30 @@ const server = http.createServer(async (req, res) => {
         emailStatus = 'failed: ' + err.message;
       }
       return sendJson(res, 200, { success: true, emailStatus });
+    }
+
+    // Archive request
+    const archiveReqMatch = pathname.match(/^\/api\/requests\/([^/]+)\/archive$/);
+    if (archiveReqMatch && method === 'POST') {
+      const updated = await FirebaseDB.archiveRequest(archiveReqMatch[1]);
+      if (!updated) return sendJson(res, 404, { error: 'Request not found' });
+      return sendJson(res, 200, { success: true, request: updated });
+    }
+
+    // Unarchive request
+    const unarchiveReqMatch = pathname.match(/^\/api\/requests\/([^/]+)\/unarchive$/);
+    if (unarchiveReqMatch && method === 'POST') {
+      const updated = await FirebaseDB.unarchiveRequest(unarchiveReqMatch[1]);
+      if (!updated) return sendJson(res, 404, { error: 'Request not found' });
+      return sendJson(res, 200, { success: true, request: updated });
+    }
+
+    // Delete request
+    const deleteReqMatch = pathname.match(/^\/api\/requests\/([^/]+)$/);
+    if (deleteReqMatch && method === 'DELETE') {
+      const deleted = await FirebaseDB.deleteRequest(deleteReqMatch[1]);
+      if (!deleted) return sendJson(res, 404, { error: 'Request not found' });
+      return sendJson(res, 200, { success: true, message: 'Request deleted' });
     }
 
     // ─────────────── QUESTIONNAIRE TEMPLATES ───────────────
@@ -418,8 +568,16 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`\n🔥 Q2 Admin Dashboard running at http://localhost:${PORT}`);
   console.log(`   Database: Firebase Firestore (Collection-based schema)`);
   console.log(`   Seller Questionnaire: http://localhost:${PORT}/questionnaire`);
+  try {
+    const cleaned = await FirebaseDB.deduplicateAccounts();
+    if (cleaned && cleaned.length) {
+      console.log(`   🧹 Deduplicated seller accounts: ${cleaned.length} unique accounts remaining.`);
+    }
+  } catch (e) {
+    console.error('Error during startup deduplication:', e.message);
+  }
 });

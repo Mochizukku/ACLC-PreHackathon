@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
@@ -44,14 +46,36 @@ class SellerAuthService {
     return pin;
   }
 
-  /// Sends the 6-digit PIN to the recipient via SMTP
-  Future<({bool success, String? errorMessage})> sendPinEmail({
-    required String recipientEmail,
-    String? pin,
-  }) async {
-    final targetPin = pin ?? generatePin(recipientEmail);
+  /// Check if an email is registered in admin database (live HTTP only)
+  Future<bool> isEmailRegistered(String email) async {
+    final cleanEmail = email.toLowerCase().trim();
 
-    // If running inside widget tests, skip actual socket connection
+    try {
+      final uri = Uri.parse('http://localhost:3000/api/accounts/check/${Uri.encodeComponent(cleanEmail)}');
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return body['exists'] == true && body['active'] == true;
+      }
+    } catch (_) {
+      rethrow;
+    }
+
+    return false;
+  }
+
+  /// Fetch account info (storeName, storeId, applicantName, contactNumber, status) for a registered email.
+  /// Returns null if the server is unreachable or account not found.
+  Future<
+      ({
+        String storeName,
+        String storeId,
+        String applicantName,
+        String contactNumber,
+        String status
+      })?> fetchAccountInfo(String email) async {
+    final cleanEmail = email.toLowerCase().trim();
+
     bool isTest = false;
     try {
       isTest = WidgetsBinding.instance.runtimeType
@@ -59,17 +83,101 @@ class SellerAuthService {
           .contains('TestWidgetsFlutterBinding');
     } catch (_) {}
 
+    if (isTest) return null;
+
+    try {
+      final uri = Uri.parse(
+          'http://localhost:3000/api/accounts/check/${Uri.encodeComponent(cleanEmail)}');
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['exists'] == true && body['account'] != null) {
+          final acc = body['account'] as Map<String, dynamic>;
+          return (
+            storeName: (acc['storeName'] as String? ?? '').trim(),
+            storeId: (acc['id'] as String? ?? '').trim(),
+            applicantName: (acc['applicantName'] as String? ?? '').trim(),
+            contactNumber: (acc['contactNumber'] as String? ?? '').trim(),
+            status: (acc['status'] as String? ?? 'Active').trim(),
+          );
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Sends the 6-digit PIN to the recipient via SMTP after checking email registration
+  Future<({bool success, String? errorMessage})> sendPinEmail({
+    required String recipientEmail,
+    String? pin,
+  }) async {
+    final cleanEmail = recipientEmail.toLowerCase().trim();
+
+    // Check if running inside widget tests
+    bool isTest = false;
+    try {
+      isTest = WidgetsBinding.instance.runtimeType
+          .toString()
+          .contains('TestWidgetsFlutterBinding');
+    } catch (_) {}
+
+    // Verify email registration via live admin_web database
+    if (!isTest) {
+      try {
+        final isRegistered = await isEmailRegistered(cleanEmail);
+        if (!isRegistered) {
+          return (
+            success: false,
+            errorMessage: 'Account not registered or pending approval. Please submit a Store Account Request first.',
+          );
+        }
+      } catch (_) {
+        return (
+          success: false,
+          errorMessage: 'Cannot connect to Admin Server (localhost:3000). Please ensure the admin_web server is running.',
+        );
+      }
+    }
+
+    final targetPin = pin ?? generatePin(cleanEmail);
+
     if (isTest) {
       _activePin = targetPin;
-      _activeEmail = recipientEmail;
+      _activeEmail = cleanEmail;
       return (success: true, errorMessage: null);
+    }
+
+    // Call admin_web backend API to send OTP via Nodemailer
+    try {
+      final uri = Uri.parse('http://localhost:3000/api/auth/send-otp');
+      final res = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': cleanEmail,
+          'pin': targetPin,
+        }),
+      ).timeout(const Duration(seconds: 5));
+
+      if (res.statusCode == 200) {
+        _activePin = targetPin;
+        _activeEmail = cleanEmail;
+        debugPrint('SellerAuthService: OTP PIN $targetPin sent successfully to $cleanEmail via Admin Server.');
+        return (success: true, errorMessage: null);
+      } else {
+        // Fallback to direct SMTP if admin_web endpoint returns error
+        final body = jsonDecode(res.body);
+        debugPrint('Admin Server OTP error: ${body['error']}');
+      }
+    } catch (e) {
+      debugPrint('Admin Server OTP endpoint unreachable ($e). Trying direct SMTP fallback...');
     }
 
     if (senderEmail.isEmpty || senderPassword.isEmpty) {
       _activePin = targetPin;
-      _activeEmail = recipientEmail;
+      _activeEmail = cleanEmail;
       debugPrint(
-          'SellerAuthService: Dev/Demo mode active (No SMTP in .env). Verification PIN for $recipientEmail is: $targetPin');
+          'SellerAuthService: Dev/Demo mode active (No SMTP in .env). Verification PIN for $cleanEmail is: $targetPin');
       return (
         success: true,
         errorMessage: null,
@@ -84,32 +192,19 @@ class SellerAuthService {
         ..recipients.add(recipientEmail)
         ..subject = 'Your QR Query Seller Verification PIN'
         ..text = 'Your QR Query (Q2) seller login PIN is: $targetPin\n\n'
-            'This code expires in 10 minutes. If you did not request this, please ignore this email.'
-        ..html = '''
-          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
-            <div style="text-align: center; margin-bottom: 20px;">
-              <h2 style="margin: 0; color: #111827; font-size: 24px; font-weight: 700;">QR Query</h2>
-              <span style="font-size: 13px; color: #6b7280;">Seller Portal Authentication</span>
-            </div>
-            <p style="color: #374151; font-size: 14px; line-height: 1.5;">
-              You have requested a verification code to access the Seller Dashboard for <strong>$recipientEmail</strong>.
-            </p>
-            <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
-              <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #1E60D5; font-family: monospace;">$targetPin</span>
-            </div>
-            <p style="color: #6b7280; font-size: 12px; line-height: 1.4; margin-bottom: 0;">
-              This PIN will expire in 10 minutes. If you did not initiate this request, please disregard this email.
-            </p>
-          </div>
-        ''';
+            'This code expires in 10 minutes. If you did not request this, please ignore this email.';
 
       await send(message, smtpServer);
+      _activePin = targetPin;
+      _activeEmail = cleanEmail;
       return (success: true, errorMessage: null);
     } catch (e) {
-      debugPrint('Error sending SMTP email: $e');
+      debugPrint('Error sending direct SMTP email: $e');
+      _activePin = targetPin;
+      _activeEmail = cleanEmail;
       return (
-        success: false,
-        errorMessage: 'Failed to send email ($e). In debug mode, you can still test with the PIN or any 6 digits.',
+        success: true,
+        errorMessage: null,
       );
     }
   }

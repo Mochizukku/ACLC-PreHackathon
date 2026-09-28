@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../models/menu_item.dart';
 import '../../theme/app_theme.dart';
 import '../../services/store_repository.dart';
@@ -25,6 +27,7 @@ class _WaitingStatusScreenState extends State<WaitingStatusScreen> {
   bool _isAutoSimulating = false;
   int _prepSecondsRemaining = 300;
   Timer? _prepCountdownTimer;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -34,12 +37,37 @@ class _WaitingStatusScreenState extends State<WaitingStatusScreen> {
     _startCountdownTimer();
   }
 
+  Timer? _dingReminderTimer;
+
   @override
   void dispose() {
     StoreRepository.instance.removeListener(_onStoreRepositoryChanged);
     _autoAdvanceTimer?.cancel();
     _prepCountdownTimer?.cancel();
+    _dingReminderTimer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> _playOrderDoneDingSound() async {
+    try {
+      SystemSound.play(SystemSoundType.click);
+      await _audioPlayer.stop();
+      await _audioPlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'));
+    } catch (e) {
+      debugPrint('Audio ding sound trigger: $e');
+    }
+  }
+
+  void _startDingReminder() {
+    _dingReminderTimer?.cancel();
+    _dingReminderTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted || widget.order.status != OrderStatus.readyForPickup) {
+        timer.cancel();
+        return;
+      }
+      _playOrderDoneDingSound();
+    });
   }
 
   void _onStoreRepositoryChanged() {
@@ -52,7 +80,11 @@ class _WaitingStatusScreenState extends State<WaitingStatusScreen> {
         widget.order.status = updatedOrder.status;
       });
       if (widget.order.status == OrderStatus.readyForPickup) {
+        _playOrderDoneDingSound();
+        _startDingReminder();
         _showReadyNotificationSnackbar();
+      } else if (widget.order.status == OrderStatus.completed || widget.order.status == OrderStatus.cancelled) {
+        _dingReminderTimer?.cancel();
       }
     }
   }

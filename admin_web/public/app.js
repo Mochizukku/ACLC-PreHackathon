@@ -72,7 +72,14 @@ function renderRequests() {
 }
 
 function badgeClass(status) {
-  const map = { 'Pending':'badge-pending','Questionnaire Sent':'badge-sent','Under Review':'badge-review','Approved':'badge-approved','Rejected':'badge-rejected' };
+  const map = {
+    'Pending': 'badge-pending',
+    'Questionnaire Sent': 'badge-sent',
+    'Under Review': 'badge-review',
+    'Approved': 'badge-approved',
+    'Rejected': 'badge-rejected',
+    'Archived': 'badge-inactive'
+  };
   return 'badge ' + (map[status] || 'badge-pending');
 }
 
@@ -82,7 +89,18 @@ function reqCard(r) {
   const isReview  = r.status === 'Under Review';
   const isPendingOrSent = isPending || isSent;
   const isActionable = isPendingOrSent || isReview;
+  const isApprovedOrRejected = r.status === 'Approved' || r.status === 'Rejected';
+  const isArchived = r.status === 'Archived';
   const date = new Date(r.submittedAt).toLocaleString();
+
+  let archiveButton = '';
+  if (isApprovedOrRejected) {
+    archiveButton = `<button class="btn-secondary-sm" onclick="archiveRequestItem('${r.id}')" style="font-size:12px;padding:4px 8px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;">📦 Archive</button>`;
+  } else if (isArchived) {
+    archiveButton = `<button class="btn-secondary-sm" onclick="unarchiveRequestItem('${r.id}')" style="font-size:12px;padding:4px 8px;background:#e5e7eb;color:#374151;border:1px solid #9ca3af;">📤 Unarchive</button>`;
+  }
+
+  const deleteButton = `<button class="btn-danger-sm" onclick="deleteRequestItem('${r.id}')" style="font-size:12px;padding:4px 8px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;">🗑️ Delete</button>`;
 
   return `
     <div class="req-card" id="reqcard-${r.id}">
@@ -97,13 +115,58 @@ function reqCard(r) {
         <strong>Submitted:</strong> ${date}
         ${r.questionnaireSubmitted ? ' &bull; <span style="color:#6d28d9;font-weight:600;">✓ Questionnaire submitted</span>' : ''}
       </div>
-      <div class="req-actions">
+      <div class="req-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         ${isPending ? `<button class="btn-primary" onclick="sendQuestionnaire('${r.id}','${r.email}')">📧 Send Questionnaire</button>` : ''}
         ${r.questionnaireSubmitted ? `<button class="btn-secondary-sm" onclick="viewAnswers('${r.id}','${r.storeName}')">📋 View Answers</button>` : ''}
         ${isActionable ? `<button class="btn-success" onclick="approveRequest('${r.id}')">✓ Approve</button>` : ''}
         ${isActionable ? `<button class="btn-danger" onclick="openRejectModal('${r.id}')">✕ Reject</button>` : ''}
+        ${archiveButton}
+        ${deleteButton}
       </div>
     </div>`;
+}
+
+async function archiveRequestItem(id) {
+  try {
+    const r = await fetch(`/api/requests/${id}/archive`, { method: 'POST' });
+    const d = await r.json();
+    if (d.success) {
+      toast('Request archived 📦', 'success');
+      await fetchData();
+      renderRequests();
+    } else {
+      toast('Error: ' + (d.error || ''), 'error');
+    }
+  } catch { toast('Network error', 'error'); }
+}
+
+async function unarchiveRequestItem(id) {
+  try {
+    const r = await fetch(`/api/requests/${id}/unarchive`, { method: 'POST' });
+    const d = await r.json();
+    if (d.success) {
+      toast('Request unarchived 📤', 'success');
+      await fetchData();
+      renderRequests();
+    } else {
+      toast('Error: ' + (d.error || ''), 'error');
+    }
+  } catch { toast('Network error', 'error'); }
+}
+
+async function deleteRequestItem(id) {
+  if (!confirm('Are you sure you want to permanently delete this request record?')) return;
+  try {
+    const r = await fetch(`/api/requests/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (d.success) {
+      toast('Request deleted 🗑️', 'success');
+      await fetchData();
+      renderRequests();
+    } else {
+      toast('Error: ' + (d.error || ''), 'error');
+    }
+  } catch { toast('Network error', 'error'); }
 }
 
 async function sendQuestionnaire(id, email) {
@@ -183,32 +246,168 @@ async function confirmReject() {
 }
 
 // ── Accounts Modal ──
+let currentAccountTab = 'active';
+
 function openAccountsModal() {
   renderAccounts();
   openModal('modal-accounts');
 }
 
+function switchAccountTab(tab, btnId) {
+  currentAccountTab = tab;
+  document.querySelectorAll('#modal-accounts .tab-btn').forEach(btn => btn.classList.remove('active'));
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.add('active');
+  renderAccounts();
+}
+
 function renderAccounts() {
-  const accounts = dashData?.accounts || [];
+  const allAccounts = dashData?.accounts || [];
   const tbody = document.getElementById('accounts-tbody');
-  if (!accounts.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:#6b7280;">No accounts in database.</td></tr>`;
+
+  let filtered = [];
+  if (currentAccountTab === 'active') {
+    filtered = allAccounts.filter(a => a.status !== 'Archived');
+  } else {
+    filtered = allAccounts.filter(a => a.status === 'Archived');
+  }
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:#6b7280;">No ${currentAccountTab} accounts found.</td></tr>`;
     return;
   }
-  tbody.innerHTML = accounts.map(a => {
+
+  tbody.innerHTML = filtered.map(a => {
     const isActive = a.status === 'Active';
+    const isArchived = a.status === 'Archived';
+    
+    let statusBadge = `<span class="${isActive ? 'status-active' : 'status-inactive'}">${escapeHtml(a.status)}</span>`;
+    if (isArchived) {
+      statusBadge = `<span style="background:#f3f4f6;color:#4b5563;border:1px solid #d1d5db;padding:4px 8px;border-radius:12px;font-size:12px;font-weight:600;">📦 Archived</span>`;
+    }
+
+    let actionButtons = '';
+    if (isArchived) {
+      actionButtons = `
+        <button class="btn-activate" onclick="unarchiveAccount('${a.id}')" style="font-size:12px;padding:4px 10px;">
+          📤 Unarchive
+        </button>
+      `;
+    } else {
+      actionButtons = `
+        <div style="display:flex;gap:6px;">
+          <button class="${isActive ? 'btn-deactivate' : 'btn-activate'}" onclick="toggleAccount('${a.id}')" style="font-size:12px;padding:4px 8px;">
+            ${isActive ? 'Deactivate' : 'Activate'}
+          </button>
+          <button class="btn-secondary-sm" onclick="archiveAccount('${a.id}')" style="font-size:12px;padding:4px 8px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;">
+            📦 Archive
+          </button>
+        </div>
+      `;
+    }
+
     return `<tr>
-      <td style="font-weight:600;">${a.storeName}</td>
-      <td>${a.applicantName}</td>
-      <td style="color:#4b5563;">${a.email}</td>
-      <td class="${isActive ? 'status-active' : 'status-inactive'}">${a.status}</td>
+      <td style="font-weight:600;">${escapeHtml(a.storeName)}</td>
+      <td>${escapeHtml(a.applicantName)}</td>
+      <td style="color:#4b5563;">${escapeHtml(a.email)}</td>
+      <td>${statusBadge}</td>
       <td>
-        <button class="${isActive ? 'btn-deactivate' : 'btn-activate'}" onclick="toggleAccount('${a.id}')">
-          ${isActive ? 'Deactivate' : 'Activate'}
+        <button class="btn-secondary-sm" onclick="openQrModalById('${a.id}')" style="font-size:12px;padding:4px 10px;display:inline-flex;align-items:center;gap:4px;">
+          📷 View QR
         </button>
       </td>
+      <td>${actionButtons}</td>
     </tr>`;
   }).join('');
+}
+
+async function archiveAccount(id) {
+  try {
+    const res = await fetch(`/api/accounts/${id}/archive`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      toast('Account stashed into Archive 📦');
+      await fetchData();
+      renderAccounts();
+    } else {
+      toast('Error: ' + (data.error || ''), 'error');
+    }
+  } catch { toast('Network error', 'error'); }
+}
+
+async function unarchiveAccount(id) {
+  try {
+    const res = await fetch(`/api/accounts/${id}/unarchive`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      toast('Account unarchived & restored to Active list 📤');
+      await fetchData();
+      renderAccounts();
+    } else {
+      toast('Error: ' + (data.error || ''), 'error');
+    }
+  } catch { toast('Network error', 'error'); }
+}
+
+async function deleteAccount(id) {
+  if (!confirm('Are you sure you want to permanently delete this account? This action cannot be undone.')) return;
+  try {
+    const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      toast('Account deleted permanently 🗑️');
+      await loadDashboardData();
+      renderAccounts();
+    } else {
+      toast('Error: ' + (data.error || ''), 'error');
+    }
+  } catch { toast('Network error', 'error'); }
+}
+
+function escapeHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function openQrModalById(accId) {
+  const acc = dashData?.accounts?.find(a => a.id === accId);
+  const storeName = acc ? acc.storeName : 'Store';
+  const qrUrl = `/api/accounts/${accId}/qrcode`;
+  
+  document.getElementById('qr-modal-store-name').textContent = `${storeName} — QR Code`;
+  document.getElementById('qr-modal-img').src = qrUrl;
+  document.getElementById('qr-modal-payload').textContent = `Payload: {"type":"q2_store","storeId":"${accId}","storeName":"${storeName}"}`;
+  
+  const dlBtn = document.getElementById('qr-download-btn');
+  dlBtn.href = qrUrl;
+  const safeFile = storeName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  dlBtn.download = `qrcode_${safeFile}.png`;
+
+  openModal('modal-qr');
+}
+
+function printQRCode() {
+  const imgUrl = document.getElementById('qr-modal-img').src;
+  const title = document.getElementById('qr-modal-store-name').textContent;
+  const printWin = window.open('', '_blank', 'width=600,height=600');
+  printWin.document.write(`
+    <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
+          h1 { margin-bottom: 8px; color: #111827; font-size: 24px; }
+          p { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+          img { width: 320px; height: 320px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        <p>Scan with the QR Query (Q2) Mobile App to view menu & place orders.</p>
+        <img src="${imgUrl}" onload="window.print();window.close();" />
+      </body>
+    </html>
+  `);
+  printWin.document.close();
 }
 
 async function toggleAccount(id) {

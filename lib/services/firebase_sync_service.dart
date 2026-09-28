@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'store_repository.dart';
 
 /// Firebase Sync Service
@@ -37,8 +39,29 @@ class FirebaseSyncService {
     debugPrint('FirebaseSync: Customer Order synced to Firebase.');
   }
 
-  /// Sync a new store request to Firebase 'store_requests' collection
+  /// Sync a new store request to Admin Dashboard & Firebase 'store_requests' collection
   Future<void> syncStoreRequest(StoreAccountRequest request) async {
-    debugPrint('FirebaseSync: Store Request ${request.id} (${request.storeName}) synced to Firebase.');
+    debugPrint('FirebaseSync: Store Request ${request.id} (${request.storeName}) syncing to Admin Web...');
+    try {
+      final uri = Uri.parse('http://localhost:3000/api/requests');
+      final res = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'storeName': request.storeName,
+          'applicantName': request.applicantName,
+          'email': request.email,
+          'contactNumber': request.contactNumber,
+          'reason': request.reason,
+        }),
+      ).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        debugPrint('FirebaseSync: Store Request ${request.id} synced successfully to Admin Web!');
+      } else {
+        debugPrint('FirebaseSync: Admin Web returned status ${res.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('FirebaseSync: Admin Web unreachable ($e). Local mode active.');
+    }
   }
 }

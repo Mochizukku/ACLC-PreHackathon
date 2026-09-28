@@ -3,6 +3,7 @@ import '../../models/menu_item.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
   final String customerName;
+  final String customerId;
   final String tableNumber;
   final String orderType;
   final List<CartItem> cartItems;
@@ -12,6 +13,7 @@ class OrderSummaryScreen extends StatelessWidget {
   const OrderSummaryScreen({
     super.key,
     required this.customerName,
+    this.customerId = '',
     required this.tableNumber,
     required this.orderType,
     required this.cartItems,
@@ -34,6 +36,7 @@ class OrderSummaryScreen extends StatelessWidget {
   void _placeOrder() {
     final newOrder = CustomerOrder(
       orderId: (100 + (DateTime.now().millisecondsSinceEpoch % 899)).toString(),
+      customerId: customerId,
       customerName: customerName,
       tableNumber: tableNumber,
       items: cartItems,

@@ -116,12 +116,39 @@
         <button class="modal-close" onclick="closeModal('modal-accounts')">×</button>
       </div>
       <div class="modal-body">
+        <div class="modal-tabs" style="margin-bottom:16px;">
+          <button class="tab-btn active" onclick="switchAccountTab('active','acc-tab-active')" id="acc-tab-active">🟢 Active Accounts</button>
+          <button class="tab-btn" onclick="switchAccountTab('archived','acc-tab-archived')" id="acc-tab-archived">📦 Archived Accounts</button>
+        </div>
         <table class="acc-table">
           <thead><tr>
-            <th>Store Name</th><th>Applicant</th><th>Email</th><th>Status</th><th>Action</th>
+            <th>Store Name</th><th>Applicant</th><th>Email</th><th>Status</th><th>QR Code</th><th>Action</th>
           </tr></thead>
           <tbody id="accounts-tbody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: View Seller QR Code ═══════════ -->
+  <div class="modal-overlay" id="modal-qr">
+    <div class="modal" style="max-width:420px;text-align:center;">
+      <div class="modal-head">
+        <h2 id="qr-modal-store-name">Seller QR Code</h2>
+        <button class="modal-close" onclick="closeModal('modal-qr')">×</button>
+      </div>
+      <div class="modal-body" style="padding:24px 16px;">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">Customers can scan this QR code using the Q2 App to order directly from this store.</p>
+        <div style="background:#f9fafb;border:2px dashed #e5e7eb;border-radius:12px;padding:20px;display:inline-block;margin-bottom:16px;">
+          <img id="qr-modal-img" src="" alt="Seller QR Code" style="width:240px;height:240px;display:block;margin:0 auto;border-radius:8px;" />
+        </div>
+        <p style="font-size:12px;color:#9ca3af;word-break:break-all;margin-bottom:20px;" id="qr-modal-payload"></p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <a id="qr-download-btn" href="#" download class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+            <span>⬇ Download PNG</span>
+          </a>
+          <button class="btn-secondary-sm" onclick="printQRCode()" style="padding:10px 18px;font-size:14px;font-weight:600;">🖨 Print QR Code</button>
+        </div>
       </div>
     </div>
   </div>

@@ -135,6 +135,7 @@ class CartItem {
 
 class CustomerOrder {
   final String orderId;
+  final String customerId;
   final String customerName;
   final String tableNumber;
   final List<CartItem> items;
@@ -148,6 +149,7 @@ class CustomerOrder {
 
   CustomerOrder({
     required this.orderId,
+    this.customerId = '',
     required this.customerName,
     required this.tableNumber,
     required this.items,
