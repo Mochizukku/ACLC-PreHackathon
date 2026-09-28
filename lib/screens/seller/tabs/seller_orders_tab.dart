@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../models/menu_item.dart';
+import '../../../services/store_repository.dart';
+import '../seller_incoming_orders_screen.dart';
 
 const _ink = Color(0xFF1E1E1E);
 const _muted = Color(0xFF606060);
@@ -14,60 +17,37 @@ class SellerOrdersTab extends StatefulWidget {
 }
 
 class _SellerOrdersTabState extends State<SellerOrdersTab> {
-  String _selectedCategory = 'Finished';
+  @override
+  void initState() {
+    super.initState();
+    StoreRepository.instance.addListener(_onStoreChanged);
+  }
 
-  final List<Map<String, dynamic>> _orders = [
-    {
-      'customerId': 'CUST001',
-      'date': '2024-06-15 14:30',
-      'total': '₱150.00',
-      'items': 2,
-    },
-    {
-      'customerId': 'CUST002',
-      'date': '2024-06-15 13:45',
-      'total': '₱200.00',
-      'items': 1,
-    },
-    {
-      'customerId': 'CUST003',
-      'date': '2024-06-15 12:15',
-      'total': '₱350.00',
-      'items': 3,
-    },
-    {
-      'customerId': 'CUST004',
-      'date': '2024-06-15 11:00',
-      'total': '₱100.00',
-      'items': 1,
-    },
-    {
-      'customerId': 'CUST005',
-      'date': '2024-06-15 10:30',
-      'total': '₱275.00',
-      'items': 4,
-    },
-    {
-      'customerId': 'CUST006',
-      'date': '2024-06-15 09:45',
-      'total': '₱180.00',
-      'items': 2,
-    },
-    {
-      'customerId': 'CUST007',
-      'date': '2024-06-15 09:00',
-      'total': '₱225.00',
-      'items': 3,
-    },
-  ];
+  @override
+  void dispose() {
+    StoreRepository.instance.removeListener(_onStoreChanged);
+    super.dispose();
+  }
 
-  final List<Map<String, dynamic>> _statusCards = [
-    {'title': 'INCOMING\nORDERS', 'count': 2, 'color': _alertRed},
-    {'title': 'PENDING\nORDERS', 'count': 1, 'color': const Color(0xFFFF8A00)},
-  ];
+  void _onStoreChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _navigateToIncomingOrders() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const SellerIncomingOrdersScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final repo = StoreRepository.instance;
+    final incomingCount = repo.incomingOrders.length;
+    final pendingCount = repo.pendingOrders.length;
+    final finishedList = repo.finishedOrders;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(36, 10, 36, 24),
       child: Column(
@@ -85,59 +65,95 @@ class _SellerOrdersTabState extends State<SellerOrdersTab> {
             ),
           ),
           const SizedBox(height: 22),
+
+          // Cards Row (Matching Image 3)
           Row(
             children: [
-              for (var index = 0; index < _statusCards.length; index++) ...[
-                if (index > 0) const SizedBox(width: 12),
-                Expanded(
-                  child: _OrderStatusCard(
-                    title: _statusCards[index]['title'] as String,
-                    count: _statusCards[index]['count'] as int,
-                    color: _statusCards[index]['color'] as Color,
-                    isSelected:
-                        _selectedCategory ==
-                        _statusCards[index]['title'].toString().replaceAll(
-                          '\n',
-                          ' ',
-                        ),
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = _statusCards[index]['title']
-                            .toString()
-                            .replaceAll('\n', ' ');
-                      });
-                    },
-                  ),
+              Expanded(
+                child: _OrderStatusCard(
+                  title: 'INCOMING\nORDERS',
+                  count: incomingCount,
+                  color: _alertRed,
+                  onTap: _navigateToIncomingOrders,
                 ),
-              ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _OrderStatusCard(
+                  title: 'PENDING\nORDERS',
+                  count: pendingCount,
+                  color: const Color(0xFFFF8A00),
+                  onTap: _navigateToIncomingOrders,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 28),
-          const Text(
-            'Finished Orders',
-            style: TextStyle(
-              color: _ink,
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
+
+          // Finished Orders Section (Image 3)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                'Finished Orders',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                ),
+              ),
+              Icon(Icons.format_list_bulleted_rounded, color: _ink, size: 22),
+            ],
           ),
           const SizedBox(height: 16),
-          ..._orders.map(
-            (order) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _OrderRow(
-                order: order,
-                onTap: () => _showOrderDetails(order),
+
+          if (finishedList.isEmpty)
+            _buildSampleFinishedOrders()
+          else
+            ...finishedList.map(
+              (order) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _OrderRow(
+                  customerLabel: order.customerName,
+                  dateLabel: _formatTime(order.orderTime),
+                  onTap: () => _showOrderDetails(order),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  void _showOrderDetails(Map<String, dynamic> order) {
+  Widget _buildSampleFinishedOrders() {
+    final sampleRows = [
+      {'id': 'Customer ID', 'date': 'Date'},
+      {'id': 'Customer ID', 'date': 'Date'},
+      {'id': 'Customer ID', 'date': 'Date'},
+      {'id': 'Customer ID', 'date': 'Date'},
+      {'id': 'Customer ID', 'date': 'Date'},
+    ];
+
+    return Column(
+      children: sampleRows.map((item) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _OrderRow(
+            customerLabel: item['id']!,
+            dateLabel: item['date']!,
+            onTap: () {},
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _showOrderDetails(CustomerOrder order) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -164,20 +180,18 @@ class _SellerOrdersTabState extends State<SellerOrdersTab> {
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  'Order Details',
+                  'Order #${order.orderId}',
                   style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
                     color: _ink,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 20),
-                _DetailRow(
-                  label: 'Customer ID',
-                  value: order['customerId'] as String,
-                ),
-                _DetailRow(label: 'Date', value: order['date'] as String),
-                _DetailRow(label: 'Items', value: '${order['items']}'),
-                _DetailRow(label: 'Total', value: order['total'] as String),
+                _DetailRow(label: 'Customer Name', value: order.customerName),
+                _DetailRow(label: 'Table Number', value: order.tableNumber),
+                _DetailRow(label: 'Order Type', value: order.orderType),
+                _DetailRow(label: 'Status', value: order.status.displayName),
+                _DetailRow(label: 'Total Amount', value: '₱${order.totalAmount.toStringAsFixed(2)}'),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -204,139 +218,114 @@ class _OrderStatusCard extends StatelessWidget {
   final String title;
   final int count;
   final Color color;
-  final bool isSelected;
   final VoidCallback onTap;
 
   const _OrderStatusCard({
     required this.title,
     required this.count,
     required this.color,
-    required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      label: '$title, $count orders',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              height: 106,
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            height: 106,
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _border, width: 1.2),
+            ),
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                height: 1.2,
+              ),
+            ),
+          ),
+          Positioned(
+            top: -7,
+            right: -7,
+            child: Container(
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isSelected ? _ink : _border,
-                  width: 1.2,
-                ),
+                color: color,
+                shape: BoxShape.circle,
               ),
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
-                ),
-              ),
+              child: count > 0
+                  ? Text(
+                      '$count',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : const SizedBox(width: 10, height: 10),
             ),
-            Positioned(
-              top: -7,
-              right: -7,
-              child: Semantics(
-                label: '$count',
-                child: Container(
-                  width: 19,
-                  height: 19,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _OrderRow extends StatelessWidget {
-  final Map<String, dynamic> order;
+  final String customerLabel;
+  final String dateLabel;
   final VoidCallback onTap;
 
-  const _OrderRow({required this.order, required this.onTap});
+  const _OrderRow({
+    required this.customerLabel,
+    required this.dateLabel,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Order for ${order['customerId']}',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: _rowBackground,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Order for ${order['customerId']}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDate(order['date'] as String),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 12,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: _rowBackground,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              customerLabel,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(width: 10),
-              const Icon(Icons.chevron_right_rounded, color: _ink, size: 24),
-            ],
-          ),
+            ),
+            Text(
+              dateLabel,
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  String _formatDate(String value) {
-    final parts = value.split(' ');
-    if (parts.length != 2) {
-      return value;
-    }
-    return '${parts[0]} • ${parts[1]}';
   }
 }
 

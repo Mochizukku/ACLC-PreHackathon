@@ -42,6 +42,8 @@ class _SellerSignInScreenState extends State<SellerSignInScreen> {
       _isLoading = false;
     });
 
+    ScaffoldMessenger.of(context).clearSnackBars();
+
     if (!result.success && result.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -50,6 +52,7 @@ class _SellerSignInScreenState extends State<SellerSignInScreen> {
           duration: const Duration(seconds: 4),
         ),
       );
+      return;
     }
 
     Navigator.of(context).push(

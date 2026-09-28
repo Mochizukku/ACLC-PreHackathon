@@ -1,6 +1,46 @@
 {
   "seller_accounts": [
     {
+      "id": "acc-dedb253e-fe5d-494d-89dc-8a58a14e9aa1",
+      "store_name": "Kent's Crispy Chicken & Snacks",
+      "applicant_name": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Inactive",
+      "created_at": "2026-09-27T14:33:03.517Z",
+      "updated_at": "2026-09-27T14:33:22.142Z"
+    },
+    {
+      "id": "acc-e3feebd9-9ffd-4b02-bdeb-6976436be480",
+      "store_name": "Kent's Special Grill & Burger",
+      "applicant_name": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Inactive",
+      "created_at": "2026-09-27T14:32:56.866Z",
+      "updated_at": "2026-09-27T14:33:22.909Z"
+    },
+    {
+      "id": "acc-4645df8d-5f5d-47e2-8a62-91a3ee44151a",
+      "store_name": "Kent's Special Grill & Burger",
+      "applicant_name": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Active",
+      "created_at": "2026-09-27T14:32:55.268Z",
+      "updated_at": "2026-09-27T14:32:55.268Z"
+    },
+    {
+      "id": "acc-435e4fda-9b81-4fe0-98ce-b4dd71b81513",
+      "store_name": "Kent's Special Grill & Burger",
+      "applicant_name": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Active",
+      "created_at": "2026-09-27T14:32:02.702Z",
+      "updated_at": "2026-09-27T14:32:02.702Z"
+    },
+    {
       "id": "acc-kent-001",
       "store_name": "Kent's Campus Diner",
       "applicant_name": "Kent John Llanita",
@@ -8,7 +48,7 @@
       "contact": "+63 917 888 9999",
       "status": "Active",
       "created_at": "2026-08-28T01:20:27.311Z",
-      "updated_at": "2026-09-27T01:20:27.311Z"
+      "updated_at": "2026-09-27T14:17:15.620Z"
     },
     {
       "id": "acc-002",
@@ -53,6 +93,54 @@
   ],
   "seller_requests": [
     {
+      "id": "req-309d832c-8cbb-45bf-b261-547ff6d81585",
+      "store_name": "Kent's Special Grill & Burger",
+      "applicant_name": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Pending",
+      "questionnaire_token": null,
+      "questionnaire_submitted": false,
+      "submitted_at": "2026-09-27T14:33:31.655Z",
+      "reviewed_at": null
+    },
+    {
+      "id": "req-5721555b-8786-461a-a9c5-062e25665d78",
+      "store_name": "Kent's Special Grill & Burger",
+      "applicant_name": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Approved",
+      "questionnaire_token": null,
+      "questionnaire_submitted": false,
+      "submitted_at": "2026-09-27T14:31:52.349Z",
+      "reviewed_at": "2026-09-27T14:32:02.699Z"
+    },
+    {
+      "id": "req-379e29a1-6ef6-4a65-8ec4-ddfdc42050c0",
+      "store_name": "Kent's Special Grill & Burger",
+      "applicant_name": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Approved",
+      "questionnaire_token": null,
+      "questionnaire_submitted": false,
+      "submitted_at": "2026-09-27T14:16:55.556Z",
+      "reviewed_at": "2026-09-27T14:32:55.267Z"
+    },
+    {
+      "id": "req-5301e357-d9fc-48fd-bb22-f5fed8f6ad53",
+      "store_name": "Kent's Special Grill & Burger",
+      "applicant_name": "Kent John Llanita",
+      "email": "kentjohnllanita8978@gmail.com",
+      "contact": "+63 917 888 9999",
+      "status": "Approved",
+      "questionnaire_token": null,
+      "questionnaire_submitted": false,
+      "submitted_at": "2026-09-27T13:26:17.807Z",
+      "reviewed_at": "2026-09-27T14:32:56.863Z"
+    },
+    {
       "id": "req-3dd74c5c-3a84-4da2-9cac-ff1cd22e1d00",
       "store_name": "P Wagon Chicken Nuggets",
       "applicant_name": "Raphael Pescadero",
@@ -70,11 +158,11 @@
       "applicant_name": "Kent John Llanita",
       "email": "kentjohnllanita8978@gmail.com",
       "contact": "+63 917 888 9999",
-      "status": "Questionnaire Sent",
+      "status": "Approved",
       "questionnaire_token": "33eb4ebf-1b00-49ff-a257-65514c681c7e",
       "questionnaire_submitted": false,
       "submitted_at": "2026-09-26T23:20:27.311Z",
-      "reviewed_at": null
+      "reviewed_at": "2026-09-27T14:33:03.515Z"
     },
     {
       "id": "req-002",

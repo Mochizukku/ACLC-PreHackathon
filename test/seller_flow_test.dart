@@ -45,9 +45,9 @@ void main() {
     await tester.tap(find.text('Verify'));
     await tester.pumpAndSettle();
 
-    // Verify SellerHomeScreen UI (empty seller home page)
+    // Verify SellerHomeScreen UI
     expect(find.byType(SellerHomeScreen), findsOneWidget);
-    expect(find.text('Seller Home'), findsOneWidget);
+    expect(find.text('Store Name'), findsOneWidget);
   });
 
   testWidgets('Seller Access to Account Request to Confirmation flow',
@@ -70,9 +70,29 @@ void main() {
     expect(find.text('Contact Number'), findsOneWidget);
     expect(find.text('Submit'), findsOneWidget);
 
-    // Scroll to and tap "Submit"
+    // Tap "Submit" with empty fields to verify error text
     await tester.ensureVisible(find.text('Submit'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Submit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Complete the specified field'), findsWidgets);
+
+    // Fill form fields
+    final textFields = find.byType(TextField);
+    await tester.enterText(textFields.at(0), 'Kanto Snack Store');
+    await tester.enterText(textFields.at(1), 'Juan Dela Cruz');
+    await tester.enterText(textFields.at(2), 'juan@example.com');
+    await tester.enterText(textFields.at(3), '09123456789');
+    await tester.dragUntilVisible(
+      textFields.at(4),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -100),
+    );
+    await tester.enterText(textFields.at(4), 'To serve campus students');
+    await tester.pumpAndSettle();
+
+    // Tap "Submit"
+    await tester.ensureVisible(find.text('Submit'));
     await tester.tap(find.text('Submit'));
     await tester.pumpAndSettle();
 

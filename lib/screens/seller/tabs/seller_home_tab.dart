@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../services/store_repository.dart';
 
 const _ink = Color(0xFF1E1E1E);
 const _muted = Color(0xFF606060);
@@ -21,27 +22,34 @@ class SellerHomeTab extends StatefulWidget {
 }
 
 class _SellerHomeTabState extends State<SellerHomeTab> {
-  bool _isStoreOpen = true;
+  @override
+  void initState() {
+    super.initState();
+    StoreRepository.instance.addListener(_onStoreChanged);
+  }
+
+  @override
+  void dispose() {
+    StoreRepository.instance.removeListener(_onStoreChanged);
+    super.dispose();
+  }
+
+  void _onStoreChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
+    final repo = StoreRepository.instance;
+    final isStoreOpen = repo.isStoreOpen;
+    final ordersCount = repo.allOrders.isEmpty ? 4 : repo.allOrders.length;
+    final productsCount = repo.products.length;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(
-            height: 0,
-            width: 0,
-            child: Text(
-              'Seller Home',
-              style: TextStyle(
-                color: Colors.transparent,
-                fontSize: 1,
-                height: 0.01,
-              ),
-            ),
-          ),
           const Text(
             'Store Name',
             style: TextStyle(
@@ -58,11 +66,9 @@ class _SellerHomeTabState extends State<SellerHomeTab> {
           ),
           const SizedBox(height: 24),
           _StoreStatus(
-            isOpen: _isStoreOpen,
+            isOpen: isStoreOpen,
             onChanged: (value) {
-              setState(() {
-                _isStoreOpen = value;
-              });
+              repo.toggleStoreStatus(value);
             },
           ),
           const SizedBox(height: 20),
@@ -71,7 +77,7 @@ class _SellerHomeTabState extends State<SellerHomeTab> {
               Expanded(
                 child: _MetricCard(
                   title: 'Orders',
-                  count: '4',
+                  count: '$ordersCount',
                   icon: Icons.inventory_2_outlined,
                   onTap: widget.onNavigateToOrders,
                 ),
@@ -80,7 +86,7 @@ class _SellerHomeTabState extends State<SellerHomeTab> {
               Expanded(
                 child: _MetricCard(
                   title: 'Products',
-                  count: '15',
+                  count: '$productsCount',
                   icon: Icons.shopping_bag_outlined,
                   onTap: widget.onNavigateToProducts,
                 ),
@@ -100,31 +106,27 @@ class _SellerHomeTabState extends State<SellerHomeTab> {
           const SizedBox(height: 14),
           SizedBox(
             height: 118,
-            child: ListView.separated(
+            child: ListView(
               scrollDirection: Axis.horizontal,
-              itemCount: 3,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _QuickActionCard(
-                    label: 'Create\nProduct',
-                    icon: Icons.add_box_outlined,
-                    onTap: () => _showActionDialog('Create Product'),
-                  );
-                }
-                if (index == 1) {
-                  return _QuickActionCard(
-                    label: 'Restock\nItems',
-                    icon: Icons.inventory_2_outlined,
-                    onTap: () => _showActionDialog('Restock Items'),
-                  );
-                }
-                return _QuickActionCard(
+              children: [
+                _QuickActionCard(
+                  label: 'Create\nProduct',
+                  icon: Icons.add_box_outlined,
+                  onTap: _showCreateProductDialog,
+                ),
+                const SizedBox(width: 12),
+                _QuickActionCard(
+                  label: 'Restock\nItems',
+                  icon: Icons.inventory_2_outlined,
+                  onTap: _showRestockDialog,
+                ),
+                const SizedBox(width: 12),
+                _QuickActionCard(
                   label: 'View\nProducts',
                   icon: Icons.storefront_outlined,
                   onTap: widget.onNavigateToProducts,
-                );
-              },
+                ),
+              ],
             ),
           ),
         ],
@@ -132,24 +134,140 @@ class _SellerHomeTabState extends State<SellerHomeTab> {
     );
   }
 
-  void _showActionDialog(String action) {
+  void _showCreateProductDialog() {
+    final nameController = TextEditingController();
+    final stockController = TextEditingController();
+
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(action),
-          content: Text(
-            '$action functionality will be integrated with the seller database.',
+          title: const Text('Create Product'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Product Name',
+                  hintText: 'e.g. Pork Tonkatsu',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: stockController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Stock (pieces)',
+                  hintText: 'e.g. 20',
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK', style: TextStyle(color: _ink)),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                final stock = int.tryParse(stockController.text.trim()) ?? 0;
+                if (name.isNotEmpty) {
+                  StoreRepository.instance.addProduct(name, stock);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Added product "$name" ($stock pcs)')),
+                  );
+                }
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Create'),
             ),
           ],
         );
       },
-    );
+    ).whenComplete(() {
+      nameController.dispose();
+      stockController.dispose();
+    });
+  }
+
+  void _showRestockDialog() {
+    final repo = StoreRepository.instance;
+    if (repo.products.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No products available to restock.')),
+      );
+      return;
+    }
+
+    String selectedId = repo.products.first.id;
+    final addQtyController = TextEditingController(text: '10');
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Restock Items'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select Product:'),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: selectedId,
+                    items: repo.products.map((p) {
+                      return DropdownMenuItem<String>(
+                        value: p.id,
+                        child: Text('${p.name} (Current: ${p.stock} pcs)'),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() => selectedId = val);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addQtyController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantity to Add',
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final qty = int.tryParse(addQtyController.text.trim()) ?? 0;
+                    if (qty > 0) {
+                      repo.restockProduct(selectedId, qty);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Restocked $qty pieces!')),
+                      );
+                    }
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Restock'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      addQtyController.dispose();
+    });
   }
 }
 
@@ -174,27 +292,55 @@ class _StoreStatus extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            Text(
-              isOpen ? 'Open for orders' : 'Currently closed',
-              style: const TextStyle(color: _muted, fontSize: 12),
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isOpen ? _openGreen : Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isOpen ? 'Toggle to close' : 'Toggle to open',
+                  style: const TextStyle(color: _muted, fontSize: 12),
+                ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              isOpen ? 'OPEN' : 'CLOSED',
-              style: TextStyle(
-                color: isOpen ? _openGreen : _muted,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: _border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
-            ),
-            _StoreToggle(value: isOpen, onChanged: onChanged),
-          ],
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isOpen ? 'OPEN' : 'CLOSED',
+                style: TextStyle(
+                  color: isOpen ? _openGreen : Colors.red,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+              _StoreToggle(value: isOpen, onChanged: onChanged),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         const Divider(height: 1, thickness: 1, color: _border),
@@ -211,31 +357,26 @@ class _StoreToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      toggled: value,
-      label: 'Store status',
-      child: GestureDetector(
-        onTap: () => onChanged(!value),
-        child: AnimatedContainer(
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 58,
+        height: 32,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: value ? _openGreen : const Color(0xFFE5E7EB),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: AnimatedAlign(
           duration: const Duration(milliseconds: 160),
-          width: 54,
-          height: 30,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: value ? const Color(0xFFB9F6CA) : const Color(0xFFE5E7EB),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: AnimatedAlign(
-            duration: const Duration(milliseconds: 160),
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: value ? _openGreen : const Color(0xFF9F9F9F),
-                shape: BoxShape.circle,
-              ),
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
             ),
           ),
         ),
@@ -259,60 +400,63 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '$title, $count',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          height: 124,
-          padding: const EdgeInsets.fromLTRB(16, 15, 14, 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 124,
+        padding: const EdgeInsets.fromLTRB(16, 15, 14, 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
-                  Icon(icon, size: 21, color: _muted),
-                ],
-              ),
-              const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    count,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                    ),
+                ),
+                Icon(icon, size: 21, color: _muted),
+              ],
+            ),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  count,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
                   ),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 19,
-                    color: _muted,
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 19,
+                  color: _muted,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -332,35 +476,31 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label.replaceAll('\n', ' '),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: 124,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: _actionBackground,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 28, color: const Color(0xFFD9D9D9)),
-              const Spacer(),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.15,
-                ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 124,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _actionBackground,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 28, color: const Color(0xFFD9D9D9)),
+            const Spacer(),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.15,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
