@@ -71,7 +71,7 @@ class OrderFinishedScreen extends StatelessWidget {
                   border: Border.all(color: Colors.white12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.35),
+                      color: Colors.black.withValues(alpha: 0.35),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -103,7 +103,7 @@ class OrderFinishedScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             'Official Digital Receipt',
-                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
                           ),
                         ],
                       ),

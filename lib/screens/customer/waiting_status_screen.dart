@@ -191,7 +191,7 @@ class _WaitingStatusScreenState extends State<WaitingStatusScreen> {
                       const Text('Auto-Advance', style: TextStyle(color: Colors.grey, fontSize: 11)),
                       Switch(
                         value: _isAutoSimulating,
-                        activeColor: Colors.white,
+                        activeThumbColor: Colors.white,
                         onChanged: _toggleAutoSimulation,
                       ),
                     ],

@@ -205,7 +205,7 @@ class _SellerProductDetailScreenState
                     ),
 
                     // Add-ons section
-                    if (addons.isNotEmpty) ...[
+                    if (_product.addons.isNotEmpty || addons.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       const Text(
                         'Addons',
@@ -216,17 +216,41 @@ class _SellerProductDetailScreenState
                         ),
                       ),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        height: 90,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: addons.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 10),
-                          itemBuilder: (context, index) {
-                            final addon = addons[index];
-                            return _AddonChip(product: addon);
-                          },
-                        ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ..._product.addons.map(
+                            (addonName) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFFE5E7EB)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.add_circle_outline_rounded,
+                                      size: 15, color: _ink),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    addonName,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: _ink,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          ...addons.map(
+                            (addon) => _AddonChip(product: addon),
+                          ),
+                        ],
                       ),
                     ],
 

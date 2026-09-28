@@ -26,6 +26,32 @@ class SellerProductItem {
   });
 }
 
+enum AccountRequestStatus { pending, approved, rejected }
+
+class StoreAccountRequest {
+  final String id;
+  final String storeName;
+  final String applicantName;
+  final String email;
+  final String contactNumber;
+  final String reason;
+  final DateTime submittedAt;
+  AccountRequestStatus status;
+  String? rejectionReason;
+
+  StoreAccountRequest({
+    required this.id,
+    required this.storeName,
+    required this.applicantName,
+    required this.email,
+    required this.contactNumber,
+    required this.reason,
+    required this.submittedAt,
+    this.status = AccountRequestStatus.pending,
+    this.rejectionReason,
+  });
+}
+
 class StoreRepository extends ChangeNotifier {
   StoreRepository._internal() {
     _initDefaultProducts();

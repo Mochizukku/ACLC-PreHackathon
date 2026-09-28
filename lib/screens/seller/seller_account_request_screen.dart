@@ -4,6 +4,7 @@ import 'seller_request_confirmation_screen.dart';
 import '../banned_screen.dart';
 import '../../services/store_repository.dart';
 import '../../utils/content_filter.dart';
+import '../../services/firebase_sync_service.dart';
 
 class SellerAccountRequestScreen extends StatefulWidget {
   const SellerAccountRequestScreen({super.key});
@@ -112,7 +113,18 @@ class _SellerAccountRequestScreenState
       return;
     }
 
-    // If all fields are non-empty and clean, proceed to Picture 1 Confirmation screen
+    // If all fields are non-empty and clean, submit request & proceed
+    final newRequest = StoreAccountRequest(
+      id: 'req-${DateTime.now().millisecondsSinceEpoch}',
+      storeName: _storeNameController.text.trim(),
+      applicantName: _applicantNameController.text.trim(),
+      email: _emailController.text.trim(),
+      contactNumber: _contactNumberController.text.trim(),
+      reason: _reasonController.text.trim(),
+      submittedAt: DateTime.now(),
+    );
+    FirebaseSyncService.instance.syncStoreRequest(newRequest);
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const SellerRequestConfirmationScreen(),

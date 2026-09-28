@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
 import '../../utils/content_filter.dart';
 
 class CustomerNameScreen extends StatefulWidget {

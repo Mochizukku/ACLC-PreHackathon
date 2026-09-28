@@ -25,10 +25,21 @@ class _SellerEditProductScreenState extends State<SellerEditProductScreen> {
   late TextEditingController _descriptionController;
   late TextEditingController _stockController;
   late bool _isAvailable;
+  late List<String> _selectedAddons;
+  late TextEditingController _customAddonController;
 
   Uint8List? _pickedImageBytes;
   String? _selectedImagePath;
   bool _isSaving = false;
+
+  final List<String> _presetAddonSuggestions = [
+    'Fried Rice',
+    'Extra Egg',
+    'Siopao',
+    'Chili Garlic Sauce',
+    'Iced Tea',
+    'Cheese Sauce',
+  ];
 
   @override
   void initState() {
@@ -42,6 +53,11 @@ class _SellerEditProductScreenState extends State<SellerEditProductScreen> {
     _stockController =
         TextEditingController(text: '${widget.product.stock}');
     _isAvailable = widget.product.isAvailable;
+    _selectedAddons = List.from(widget.product.addons.isNotEmpty
+        ? widget.product.addons
+        : ['Fried Rice', 'Extra Egg', 'Siopao']);
+    _customAddonController = TextEditingController();
+
     if (widget.product.imageBytes != null) {
       _pickedImageBytes = Uint8List.fromList(widget.product.imageBytes!);
     }
@@ -53,6 +69,7 @@ class _SellerEditProductScreenState extends State<SellerEditProductScreen> {
     _priceController.dispose();
     _descriptionController.dispose();
     _stockController.dispose();
+    _customAddonController.dispose();
     super.dispose();
   }
 
@@ -105,6 +122,7 @@ class _SellerEditProductScreenState extends State<SellerEditProductScreen> {
       repo.products[index].price = price;
       repo.products[index].description = description;
       repo.products[index].isAvailable = _isAvailable;
+      repo.products[index].addons = List.from(_selectedAddons);
       if (_pickedImageBytes != null) {
         repo.products[index].imageBytes = _pickedImageBytes!.toList();
         repo.products[index].imageUrl = '';
@@ -295,6 +313,134 @@ class _SellerEditProductScreenState extends State<SellerEditProductScreen> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 20),
+
+              // Add-ons Management Section
+              _FieldLabel(label: 'Product Add-ons'),
+              const SizedBox(height: 6),
+              Text(
+                'Select or add extra items customers can add to this product:',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 10),
+
+              // Preset & Selected Add-on Chips
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._presetAddonSuggestions.map((addon) {
+                    final isSelected = _selectedAddons.contains(addon);
+                    return FilterChip(
+                      selected: isSelected,
+                      label: Text(addon),
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? Colors.white : _ink,
+                      ),
+                      selectedColor: Colors.black,
+                      backgroundColor: const Color(0xFFF3F4F6),
+                      checkmarkColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isSelected
+                              ? Colors.black
+                              : const Color(0xFFE5E7EB),
+                        ),
+                      ),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedAddons.add(addon);
+                          } else {
+                            _selectedAddons.remove(addon);
+                          }
+                        });
+                      },
+                    );
+                  }),
+                  ..._selectedAddons
+                      .where((a) => !_presetAddonSuggestions.contains(a))
+                      .map((customAddon) {
+                    return InputChip(
+                      selected: true,
+                      label: Text(customAddon),
+                      labelStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      selectedColor: const Color(0xFF2563EB),
+                      deleteIconColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedAddons.remove(customAddon);
+                        });
+                      },
+                    );
+                  }),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Add custom add-on text field
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _customAddonController,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Add custom add-on (e.g. Extra Sauce)',
+                        hintStyle: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade400),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: _border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: _ink),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      final text = _customAddonController.text.trim();
+                      if (text.isNotEmpty && !_selectedAddons.contains(text)) {
+                        setState(() {
+                          _selectedAddons.add(text);
+                          _customAddonController.clear();
+                        });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _ink,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Add',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
 

@@ -1,0 +1,22 @@
+{
+  "name": "q2-admin-dashboard",
+  "version": "1.0.0",
+  "description": "Admin Dashboard Website synchronized with Q2 (QR Query) Flutter Application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "q2",
+    "admin",
+    "dashboard",
+    "qr-query"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "firebase-admin": "^14.5.0",
+    "nodemailer": "^10.0.10",
+    "uuid": "^14.0.2"
+  }
+}
