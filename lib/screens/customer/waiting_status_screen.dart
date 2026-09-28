@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../models/menu_item.dart';
-import '../../theme/app_theme.dart';
 
 class WaitingStatusScreen extends StatefulWidget {
   final CustomerOrder order;
@@ -172,7 +171,7 @@ class _WaitingStatusScreenState extends State<WaitingStatusScreen> {
                       const Text('Auto-Advance', style: TextStyle(color: Colors.grey, fontSize: 11)),
                       Switch(
                         value: _isAutoSimulating,
-                        activeColor: Colors.white,
+                        activeThumbColor: Colors.white,
                         onChanged: _toggleAutoSimulation,
                       ),
                     ],

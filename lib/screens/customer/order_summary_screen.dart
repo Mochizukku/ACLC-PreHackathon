@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/menu_item.dart';
-import '../../theme/app_theme.dart';
 
 class OrderSummaryScreen extends StatelessWidget {
   final String customerName;

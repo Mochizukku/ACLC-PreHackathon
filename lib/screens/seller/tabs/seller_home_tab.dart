@@ -103,7 +103,7 @@ class _SellerHomeTabState extends State<SellerHomeTab> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 3,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return _QuickActionCard(

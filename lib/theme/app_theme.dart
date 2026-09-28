@@ -73,7 +73,7 @@ class AppTheme {
     border: Border.all(color: grayBorder, width: 1),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withValues(alpha: 0.5),
         blurRadius: 16,
         offset: const Offset(0, 6),
       ),
@@ -90,7 +90,7 @@ class AppTheme {
     border: Border.all(color: grayBorder),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.4),
+        color: Colors.black.withValues(alpha: 0.4),
         blurRadius: 12,
         offset: const Offset(0, 5),
       ),

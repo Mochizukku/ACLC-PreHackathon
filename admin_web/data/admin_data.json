@@ -1,0 +1,124 @@
+{
+  "stats": {
+    "activeAccounts": 224,
+    "sellerAccountsTotal": 1085,
+    "missedRequestsTotal": 4,
+    "chart": {
+      "yMax": 100,
+      "yMin": 0,
+      "label": "Current Sold this Month",
+      "weeks": [
+        {
+          "name": "Week 1",
+          "sold": 15
+        },
+        {
+          "name": "Week 2",
+          "sold": 52
+        },
+        {
+          "name": "Week 3",
+          "sold": 43
+        },
+        {
+          "name": "Week 4",
+          "sold": 72
+        },
+        {
+          "name": "Week 5",
+          "sold": 17
+        }
+      ]
+    }
+  },
+  "accounts": [
+    {
+      "id": "acc-1790468316160",
+      "storeName": "Campus Milk Tea Express",
+      "applicantName": "David Lim",
+      "email": "david.milktea@gmail.com",
+      "contact": "+63 917 999 1122",
+      "status": "Active",
+      "registeredAt": "2026-09-27T00:18:36.160Z"
+    },
+    {
+      "id": "acc-101",
+      "storeName": "Campus Cafeteria Hub (Main)",
+      "applicantName": "Maria Santos",
+      "email": "canteen.main@school.edu.ph",
+      "contact": "+63 917 123 4567",
+      "status": "Active",
+      "registeredAt": "2026-08-15T09:00:00Z"
+    },
+    {
+      "id": "acc-102",
+      "storeName": "Q2 Quick Bites & Drinks",
+      "applicantName": "Juan Dela Cruz",
+      "email": "juan.bites@school.edu.ph",
+      "contact": "+63 918 555 8899",
+      "status": "Active",
+      "registeredAt": "2026-09-01T10:30:00Z"
+    },
+    {
+      "id": "acc-103",
+      "storeName": "Green Garden Salads",
+      "applicantName": "Elena Rostova",
+      "email": "elena.green@school.edu.ph",
+      "contact": "+63 920 334 1122",
+      "status": "Inactive",
+      "registeredAt": "2026-07-20T14:15:00Z"
+    }
+  ],
+  "requests": [
+    {
+      "id": "req-1790468307597",
+      "storeName": "Campus Milk Tea Express",
+      "applicantName": "David Lim",
+      "email": "david.milktea@gmail.com",
+      "contact": "+63 917 999 1122",
+      "reason": "Serving milk tea and boba drinks at cafeteria station 3",
+      "status": "Approved",
+      "submittedAt": "2026-09-27T00:18:27.597Z"
+    },
+    {
+      "id": "req-1",
+      "storeName": "Crispy Delights Fried Chicken",
+      "applicantName": "Roberto Gomez",
+      "email": "roberto.chicken@gmail.com",
+      "contact": "+63 915 882 1201",
+      "reason": "We want to serve fresh crispy chicken combos to students via QR ordering.",
+      "status": "Pending",
+      "submittedAt": "2026-09-26T18:40:00Z"
+    },
+    {
+      "id": "req-2",
+      "storeName": "Kape & Pastry Corner",
+      "applicantName": "Angela Reyes",
+      "email": "angela.reyes@gmail.com",
+      "contact": "+63 917 441 9922",
+      "reason": "Offering hot espresso and baked pastries for morning breaks.",
+      "status": "Pending",
+      "submittedAt": "2026-09-26T19:15:00Z"
+    },
+    {
+      "id": "req-3",
+      "storeName": "Bento Express Bowl",
+      "applicantName": "Kenji Sato",
+      "email": "kenji.bento@gmail.com",
+      "contact": "+63 922 710 4321",
+      "reason": "Japanese rice bowls and teriyaki chicken meal boxes.",
+      "status": "Pending",
+      "submittedAt": "2026-09-26T20:00:00Z"
+    },
+    {
+      "id": "req-4",
+      "storeName": "Fresh Fruit & Smoothie Bar",
+      "applicantName": "Sarah Jenkins",
+      "email": "sarah.smoothies@gmail.com",
+      "contact": "+63 919 663 8744",
+      "reason": "Healthy fruit shakes and coolers for school athletes and students.",
+      "status": "Pending",
+      "submittedAt": "2026-09-26T21:10:00Z"
+    }
+  ]
+}

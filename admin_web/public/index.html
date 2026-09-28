@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard · QR Query (Q2)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="admin-header">
+    <h1>Admin Dashboard</h1>
+    <div class="live-badge">
+      <span class="live-dot"></span>
+      <span id="sync-label">Live · Syncing database…</span>
+    </div>
+  </header>
+
+  <!-- ── Main Canvas (white rounded card from design) ── -->
+  <main class="canvas">
+    <div class="dashboard-grid">
+
+      <!-- Card: Accounts -->
+      <div class="dash-card" onclick="openAccountsModal()" title="Manage seller accounts">
+        <div class="card-bar"></div>
+        <div class="card-body">
+          <h2 class="card-title">Accounts</h2>
+          <div class="acc-rows">
+            <div class="acc-row">
+              <div class="row-left">
+                <span class="ind-dot dot-green"></span>
+                <span class="acc-label">Active Account</span>
+              </div>
+              <span class="acc-val" id="val-active">—</span>
+            </div>
+            <div class="acc-row">
+              <div class="row-left">
+                <span class="ind-dot dot-gray"></span>
+                <span class="acc-label">Seller Account Total</span>
+              </div>
+              <span class="acc-val" id="val-total">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Statistics -->
+      <div class="dash-card" onclick="openStatsModal()" title="View sales statistics">
+        <div class="card-bar"></div>
+        <div class="card-body">
+          <h2 class="card-title">Statistics</h2>
+          <div class="chart-wrapper">
+            <div class="chart-overview-label">Overview</div>
+            <div class="chart-area">
+              <div class="y-labels">
+                <span id="y-max">—</span>
+                <span>0</span>
+              </div>
+              <div class="chart-plot" id="bar-plot"></div>
+            </div>
+            <div class="x-labels" id="x-labels"></div>
+            <div class="chart-caption" id="chart-caption">Current Sold this Month</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Account Request -->
+      <div class="dash-card" onclick="openRequestsModal()" title="Review seller applications">
+        <div class="card-bar"></div>
+        <div class="card-body">
+          <h2 class="card-title">Account Request</h2>
+          <div class="req-row" style="margin-top:auto;">
+            <span class="req-label">Missed Request Total</span>
+            <span class="req-val" id="val-missed">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /grid -->
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer class="footer-bar">
+    <span class="footer-info">Q2 System · Firebase Database · Port 3000</span>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-outline" onclick="simulateMobileRequest()">📱 Test Mobile Request</button>
+      <button class="btn-outline" onclick="openQuestionsModal()">⚙ Questionnaire Manager</button>
+      <button class="btn-outline" onclick="fetchData()">↺ Refresh</button>
+    </div>
+  </footer>
+
+  <!-- ═══════════ MODAL: Requests ═══════════ -->
+  <div class="modal-overlay" id="modal-requests">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Seller Account Requests</h2>
+        <button class="modal-close" onclick="closeModal('modal-requests')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-tabs">
+          <button class="tab-btn active" onclick="switchTab('tab-pending','req-tab-btn-pending')" id="req-tab-btn-pending">Pending</button>
+          <button class="tab-btn" onclick="switchTab('tab-all','req-tab-btn-all')" id="req-tab-btn-all">All Requests</button>
+        </div>
+        <div id="tab-pending"></div>
+        <div id="tab-all" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: Accounts ═══════════ -->
+  <div class="modal-overlay" id="modal-accounts">
+    <div class="modal modal-lg">
+      <div class="modal-head">
+        <h2>Seller Accounts Directory</h2>
+        <button class="modal-close" onclick="closeModal('modal-accounts')">×</button>
+      </div>
+      <div class="modal-body">
+        <table class="acc-table">
+          <thead><tr>
+            <th>Store Name</th><th>Applicant</th><th>Email</th><th>Status</th><th>Action</th>
+          </tr></thead>
+          <tbody id="accounts-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: Statistics ═══════════ -->
+  <div class="modal-overlay" id="modal-stats">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Monthly Sales Statistics</h2>
+        <button class="modal-close" onclick="closeModal('modal-stats')">×</button>
+      </div>
+      <div class="modal-body" id="stats-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: Questions Manager ═══════════ -->
+  <div class="modal-overlay" id="modal-questions">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Questionnaire Manager</h2>
+        <button class="modal-close" onclick="closeModal('modal-questions')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">
+          These questions are sent to prospective sellers to complete before the admin reviews their application.
+        </p>
+        <div id="questions-list"></div>
+        <div class="q-add-row">
+          <input class="q-add-input" id="new-q-input" placeholder="Add a new question…" />
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+            <input type="checkbox" id="new-q-required" checked> Required
+          </label>
+          <button class="btn-primary" onclick="addQuestion()">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: Answers ═══════════ -->
+  <div class="modal-overlay" id="modal-answers">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="answers-title">Questionnaire Answers</h2>
+        <button class="modal-close" onclick="closeModal('modal-answers')">×</button>
+      </div>
+      <div class="modal-body" id="answers-body"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: Reject Reason ═══════════ -->
+  <div class="modal-overlay" id="modal-reject">
+    <div class="modal" style="max-width:460px;">
+      <div class="modal-head">
+        <h2>Reject Application</h2>
+        <button class="modal-close" onclick="closeModal('modal-reject')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">Optionally provide a reason — it will be included in the rejection email sent to the applicant.</p>
+        <textarea class="reject-textarea" id="reject-reason" placeholder="e.g. Incomplete information, health permit missing…"></textarea>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-danger" id="confirm-reject-btn" onclick="confirmReject()">Confirm Rejection</button>
+          <button class="btn-secondary-sm" onclick="closeModal('modal-reject')">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
