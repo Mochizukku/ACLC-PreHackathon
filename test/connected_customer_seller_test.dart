@@ -10,7 +10,7 @@ void main() {
 
   test('ContentFilter detects profane and inappropriate language correctly', () {
     expect(ContentFilter.validate('Valid store reason'), isNull);
-    expect(ContentFilter.validate('fuck this app'), isNotNull);
+    expect(ContentFilter.validate('fuck this app'), isNotNull); //Bruh
     expect(ContentFilter.validate('skibidi toilet brainrot'), isNotNull);
   });
 

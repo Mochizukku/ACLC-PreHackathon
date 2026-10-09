@@ -104,3 +104,61 @@ The current version is intended for demonstrating the proposed system flow. Full
 ## Purpose
 
 Q2 aims to provide a more organized and efficient way for students to order from the school cafeteria while helping sellers manage incoming orders, inventory, and transaction workflows.
+
+## Run Locally
+
+### For Customer/Seller
+
+Requires the Flutter SDK and a configured target device, emulator, or desktop platform.
+
+```sh
+flutter pub get
+flutter run
+```
+
+Run test using: 
+
+```sh
+flutter test
+``` 
+
+### For Admin
+
+Get the admin directory with the simple command using:
+
+```sh
+cd admin_web
+```
+
+Open a server with: 
+
+```sh
+node server.js
+```
+
+## Project Structure
+
+For Customers/Sellers: 
+
+- `lib/screens/splash_screen.dart`: application splash screen.
+- `lib/screens/role_selection.dart`: role selection for seller and customer users.
+- `lib/screens/customer/`: customer qr scanner, dashboard, menu ordering, checkout, status, and finished order with summary.
+- `lib/screens/seller/`: seller login/register, home screen, profile screen, order screen, product screen, incoming/pending orders and order/payment confirmation. 
+- `lib/screens/banned_screen.dart`: banned customers for sellers to each store.
+- `lib/data/sample_menu.dart`: order samples, food images, sample pricing, and product description.
+- `lib/models/menu_item.dart`: order status demonstration with order details.
+- `lib/services/`: application backend-database connection, customer addons and seller authentication.
+- `lib/theme/`: application color screen theme palette.
+- `lib/utils/content_filter/dart`: restricted words for customer naming.
+
+For Testing: 
+
+- `test/connected_customer_seller_test.dart`:  handles customer and seller interaction.
+- `test/seller_auth_service_test.dart`: seller authentication for logging in.
+- `test/seller_flow_test.dart`: seller dashboard, profile, order, and products flow.
+- `test/seller_pin_verification_screen_test.dart`: seller verification confirmation through PIN.
+- `test/widget_test.dart`: splash screen response.
+
+For Admin: 
+
+- `admin_web/public/index.html`: 
